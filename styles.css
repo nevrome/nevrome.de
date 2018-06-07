@@ -43,16 +43,9 @@ body {
    float: right;
    right: 0.50%;
    width: 33.00%;
-   background-color: #ffffff
+   background-color: #ffffff;
+	 height: 100vh;
 }
-.footer{
-   position: relative;
-   float: left;
-   left: 15.00%;
-   width: 70.00%;
-   background-color: #ffffff
-}
-
 
 
 .button {

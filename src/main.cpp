@@ -24,7 +24,7 @@ int main(int argc, char* argv[]){
 	
 	// twitter
 	CTML::Node twitter_script = CTML::Node("script");
-	twitter_script.SetAttribute("async src", "https://platform.twitter.com/widgets.js");
+	twitter_script.SetAttribute("src", "https://platform.twitter.com/widgets.js");
 	twitter_script.SetAttribute("charset", "utf-8");
 	doc.AddNodeToBody(twitter_script);
 	CTML::Node twitter = CTML::Node("a");
@@ -42,15 +42,24 @@ int main(int argc, char* argv[]){
 	github.SetAttribute("width", "100%");
 	github.SetAttribute("height", "100%");
 
+	// reddit 
+	CTML::Node reddit = CTML::Node("script");
+	reddit.SetAttribute("type", "text/javascript");
+	reddit.SetAttribute("src", "https://www.reddit.com/user/nevrome/submitted.embed?limit=30&sort=hot");
+	reddit.SetContent("huhu");
+
 	// actual page structure
 	
 	CTML::Node left = CTML::Node("div").SetAttribute("class", "left"); 
 	left.AppendChild(twitter);
 	CTML::Node middle = CTML::Node("div").SetAttribute("class", "middle"); 
 	middle.AppendChild(github);
+	CTML::Node right = CTML::Node("div").SetAttribute("class", "right"); 
+	right.AppendChild(reddit);
 
 	doc.AddNodeToBody(left);
 	doc.AddNodeToBody(middle);
+	doc.AddNodeToBody(right);
 
 	std::string index_html_path = ideas_file_path + "index.html";
   return doc.WriteToFile(index_html_path, CTML::Readability::MULTILINE);
