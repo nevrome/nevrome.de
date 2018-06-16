@@ -28,6 +28,7 @@ int main(int argc, char* argv[]){
 
 	// github
 	CTML::Node github = CTML::Node("iframe");
+	github.SetAttribute("class", "iframe");
 	github.SetAttribute("allowtransparency", "true");
 	github.SetAttribute("frameborder", "0");
 	github.SetAttribute("scrolling", "yes");
@@ -38,6 +39,7 @@ int main(int argc, char* argv[]){
 
 	// hcommons
 	CTML::Node hcommons = CTML::Node("iframe");
+	hcommons.SetAttribute("class", "iframe");
 	hcommons.SetAttribute("allowtransparency", "true");
 	hcommons.SetAttribute("frameborder", "0");
 	hcommons.SetAttribute("scrolling", "yes");
@@ -47,11 +49,14 @@ int main(int argc, char* argv[]){
 	hcommons.SetAttribute("height", "900px");
 
 	// headers
-	CTML::Node hcommons_header = CTML::Node("h1");
+	CTML::Node hcommons_header = CTML::Node("h2");
+	hcommons_header.SetAttribute("style", "color:white;");
 	hcommons_header.SetContent("Humanities Commons");
-	CTML::Node github_header = CTML::Node("h1");
+	CTML::Node github_header = CTML::Node("h2");
+	github_header.SetAttribute("style", "color:white;");
 	github_header.SetContent("Github");
-	CTML::Node twitter_header = CTML::Node("h1");
+	CTML::Node twitter_header = CTML::Node("h2");
+	twitter_header.SetAttribute("style", "color:white;");
 	twitter_header.SetContent("Twitter");
 
 	// actual page structure

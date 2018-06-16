@@ -5,7 +5,7 @@
 body {
     margin: 0;
     font-family: Arial;
-		background-color: #409e64;
+		background-color: black;
 }
 
 .header {
@@ -34,5 +34,9 @@ body {
 				height: 1000px;
 				padding-bottom:5em;
     }
+}
+
+.iframe {
+	border-radius: 7px;
 }
 
