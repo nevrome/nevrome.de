@@ -42,24 +42,33 @@ int main(int argc, char* argv[]){
 	github.SetAttribute("width", "100%");
 	github.SetAttribute("height", "100%");
 
-	// reddit 
-	CTML::Node reddit = CTML::Node("script");
-	reddit.SetAttribute("type", "text/javascript");
-	reddit.SetAttribute("src", "https://www.reddit.com/user/nevrome/submitted.embed?limit=30&sort=hot");
-	reddit.SetContent("huhu");
+	// hcommons
+	CTML::Node hcommons = CTML::Node("iframe");
+	hcommons.SetAttribute("allowtransparency", "true");
+	hcommons.SetAttribute("frameborder", "0");
+	hcommons.SetAttribute("scrolling", "yes");
+	hcommons.SetAttribute("seamless", "seamless");
+	hcommons.SetAttribute("src", "https://hcommons.org/members/nevrome/");
+	hcommons.SetAttribute("width", "100%");
+	hcommons.SetAttribute("height", "100%");
 
 	// actual page structure
 	
-	CTML::Node left = CTML::Node("div").SetAttribute("class", "left"); 
-	left.AppendChild(twitter);
-	CTML::Node middle = CTML::Node("div").SetAttribute("class", "middle"); 
-	middle.AppendChild(github);
-	CTML::Node right = CTML::Node("div").SetAttribute("class", "right"); 
-	right.AppendChild(reddit);
+	CTML::Node row = CTML::Node("div").SetAttribute("class", "row"); 
 
-	doc.AddNodeToBody(left);
-	doc.AddNodeToBody(middle);
-	doc.AddNodeToBody(right);
+	CTML::Node column1 = CTML::Node("div").SetAttribute("class", "column"); 
+	CTML::Node column2 = CTML::Node("div").SetAttribute("class", "column"); 
+	CTML::Node column3 = CTML::Node("div").SetAttribute("class", "column"); 
+	
+	column1.AppendChild(hcommons);
+	column2.AppendChild(twitter);
+	column3.AppendChild(github);
+
+	row.AppendChild(column1);	
+	row.AppendChild(column2);	
+	row.AppendChild(column3);	
+
+	doc.AddNodeToBody(row);	
 
 	std::string index_html_path = ideas_file_path + "index.html";
   return doc.WriteToFile(index_html_path, CTML::Readability::MULTILINE);
