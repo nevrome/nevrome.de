@@ -16,12 +16,6 @@ int main(int argc, char* argv[]){
 	ref_to_css.SetAttribute("rel", "stylesheet");	
 	doc.AddNodeToHead(ref_to_css);
 
-	// button
-	CTML::Node my_button = CTML::Node("button");
-	my_button.SetAttribute("style", "vertical-align:middle");
-	my_button.SetAttribute("class", "button");
-	my_button.AppendChild(CTML::Node("span").SetContent("Hover"));	
-	
 	// twitter
 	CTML::Node twitter_script = CTML::Node("script");
 	twitter_script.SetAttribute("src", "https://platform.twitter.com/widgets.js");
@@ -30,7 +24,7 @@ int main(int argc, char* argv[]){
 	CTML::Node twitter = CTML::Node("a");
 	twitter.SetAttribute("class", "twitter-timeline");
 	twitter.SetAttribute("href", "https://twitter.com/nevromeCS?ref_src=twsrc%5Etfw");
-	twitter.SetAttribute("data-height", "90vh");
+	twitter.SetAttribute("data-height", "900px");
 
 	// github
 	CTML::Node github = CTML::Node("iframe");
@@ -40,7 +34,7 @@ int main(int argc, char* argv[]){
 	github.SetAttribute("seamless", "seamless");
 	github.SetAttribute("src", "http://colmdoyle.github.io/gh-activity/gh-activity.html?user=nevrome&type=user");
 	github.SetAttribute("width", "100%");
-	github.SetAttribute("height", "90%");
+	github.SetAttribute("height", "900px");
 
 	// hcommons
 	CTML::Node hcommons = CTML::Node("iframe");
@@ -50,7 +44,7 @@ int main(int argc, char* argv[]){
 	hcommons.SetAttribute("seamless", "seamless");
 	hcommons.SetAttribute("src", "https://hcommons.org/members/nevrome/");
 	hcommons.SetAttribute("width", "100%");
-	hcommons.SetAttribute("height", "90%");
+	hcommons.SetAttribute("height", "900px");
 
 	// headers
 	CTML::Node hcommons_header = CTML::Node("h1");
