@@ -30,7 +30,7 @@ int main(int argc, char* argv[]){
 	CTML::Node twitter = CTML::Node("a");
 	twitter.SetAttribute("class", "twitter-timeline");
 	twitter.SetAttribute("href", "https://twitter.com/nevromeCS?ref_src=twsrc%5Etfw");
-	twitter.SetAttribute("data-height", "100vh");
+	twitter.SetAttribute("data-height", "90vh");
 
 	// github
 	CTML::Node github = CTML::Node("iframe");
@@ -40,7 +40,7 @@ int main(int argc, char* argv[]){
 	github.SetAttribute("seamless", "seamless");
 	github.SetAttribute("src", "http://colmdoyle.github.io/gh-activity/gh-activity.html?user=nevrome&type=user");
 	github.SetAttribute("width", "100%");
-	github.SetAttribute("height", "100%");
+	github.SetAttribute("height", "90%");
 
 	// hcommons
 	CTML::Node hcommons = CTML::Node("iframe");
@@ -50,23 +50,34 @@ int main(int argc, char* argv[]){
 	hcommons.SetAttribute("seamless", "seamless");
 	hcommons.SetAttribute("src", "https://hcommons.org/members/nevrome/");
 	hcommons.SetAttribute("width", "100%");
-	hcommons.SetAttribute("height", "100%");
+	hcommons.SetAttribute("height", "90%");
+
+	// headers
+	CTML::Node hcommons_header = CTML::Node("h1");
+	hcommons_header.SetContent("Humanities Commons");
+	CTML::Node github_header = CTML::Node("h1");
+	github_header.SetContent("Github");
+	CTML::Node twitter_header = CTML::Node("h1");
+	twitter_header.SetContent("Twitter");
 
 	// actual page structure
 	
 	CTML::Node row = CTML::Node("div").SetAttribute("class", "row"); 
 
-	CTML::Node column1 = CTML::Node("div").SetAttribute("class", "column"); 
-	CTML::Node column2 = CTML::Node("div").SetAttribute("class", "column"); 
-	CTML::Node column3 = CTML::Node("div").SetAttribute("class", "column"); 
+	CTML::Node column_hcommons = CTML::Node("div").SetAttribute("class", "column"); 
+	CTML::Node column_twitter = CTML::Node("div").SetAttribute("class", "column"); 
+	CTML::Node column_github = CTML::Node("div").SetAttribute("class", "column"); 
 	
-	column1.AppendChild(hcommons);
-	column2.AppendChild(twitter);
-	column3.AppendChild(github);
+	column_hcommons.AppendChild(hcommons_header);
+	column_hcommons.AppendChild(hcommons);
+	column_twitter.AppendChild(twitter_header);
+	column_twitter.AppendChild(twitter);
+	column_github.AppendChild(github_header);
+	column_github.AppendChild(github);
 
-	row.AppendChild(column1);	
-	row.AppendChild(column2);	
-	row.AppendChild(column3);	
+	row.AppendChild(column_hcommons);	
+	row.AppendChild(column_github);	
+	row.AppendChild(column_twitter);	
 
 	doc.AddNodeToBody(row);	
 
