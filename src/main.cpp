@@ -24,7 +24,7 @@ int main(int argc, char* argv[]){
 	CTML::Node twitter = CTML::Node("a");
 	twitter.SetAttribute("class", "twitter-timeline");
 	twitter.SetAttribute("href", "https://twitter.com/nevromeCS?ref_src=twsrc%5Etfw");
-	twitter.SetAttribute("data-height", "390px");
+	twitter.SetAttribute("data-height", "510px");
 
 	// github
 	CTML::Node github = CTML::Node("iframe");
@@ -35,7 +35,7 @@ int main(int argc, char* argv[]){
 	github.SetAttribute("seamless", "seamless");
 	github.SetAttribute("src", "http://colmdoyle.github.io/gh-activity/gh-activity.html?user=nevrome&type=user");
 	github.SetAttribute("width", "100%");
-	github.SetAttribute("height", "390px");
+	github.SetAttribute("height", "510px");
 
 	// hcommons
 	CTML::Node hcommons = CTML::Node("iframe");
@@ -46,7 +46,7 @@ int main(int argc, char* argv[]){
 	hcommons.SetAttribute("seamless", "seamless");
 	hcommons.SetAttribute("src", "https://hcommons.org/members/nevrome/");
 	hcommons.SetAttribute("width", "100%");
-	hcommons.SetAttribute("height", "390px");
+	hcommons.SetAttribute("height", "510px");
 
 	// github 2
 	CTML::Node github_repos_css = CTML::Node("link");
@@ -64,16 +64,15 @@ int main(int argc, char* argv[]){
 	github_repos_ISAAKiel.SetAttribute("class", "github-widget");
 	github_repos_ISAAKiel.SetAttribute("data-user", "ISAAKiel");
 
-	// header archaeologist
-	CTML::Node archaeologist = CTML::Node("div");
-	archaeologist.SetAttribute("class", "top_boxes");
-	archaeologist.SetAttribute("style", "background-color: #006650;");
+	// top box archaeology
+	CTML::Node archaeology = CTML::Node("div");
+	archaeology.SetAttribute("class", "top_boxes");
+	archaeology.SetAttribute("style", "background-color: #006650;");
 	
-	CTML::Node hcommons_header = CTML::Node("h2");
-	hcommons_header.SetAttribute("style", "color:white;");
-	hcommons_header.SetContent("Archaeology");
+	CTML::Node archaeology_header = CTML::Node("h3");
+	archaeology_header.SetContent("Archaeology");
 
-	archaeologist.AppendChild(hcommons_header);
+	archaeology.AppendChild(archaeology_header);
 
 	// header developer
 
@@ -81,30 +80,18 @@ int main(int argc, char* argv[]){
 	developer.SetAttribute("class", "top_boxes");
 	developer.SetAttribute("style", "background-color: #4B88A2;");
 
-	CTML::Node github_header = CTML::Node("h2");
-	github_header.SetAttribute("style", "color:white;");
+	CTML::Node github_header = CTML::Node("h3");
 	github_header.SetContent("Software projects");
 	
 	developer.AppendChild(github_header);
 	
-	//CTML::Node project_table = CTML::Node("table");
-	//project_table.SetAttribute("style", "width:100%");
-//	CTML::Node ptr1 = CTML::Node("tr");
-	//CTML::Node pth1 = CTML::Node("th");
-//	pth1.SetContent("test");
-
-	//ptr1.AppendChild(pth1);		
-	//project_table.AppendChild(ptr1);
-	//developer.AppendChild(project_table);
-
 	// header beyond
 
 	CTML::Node beyond = CTML::Node("div");
 	beyond.SetAttribute("class", "top_boxes");
 	beyond.SetAttribute("style", "background-color: #1da1f2;");	
 
-	CTML::Node twitter_header = CTML::Node("h2");
-	twitter_header.SetAttribute("style", "color:white;");
+	CTML::Node twitter_header = CTML::Node("h3");
 	twitter_header.SetContent("Contact");
 
 	beyond.AppendChild(twitter_header);
@@ -119,7 +106,7 @@ int main(int argc, char* argv[]){
 	CTML::Node column_github = CTML::Node("div").SetAttribute("class", "columnM"); 
 	CTML::Node column_twitter = CTML::Node("div").SetAttribute("class", "columnR"); 
 	
-	column_hcommons.AppendChild(archaeologist);
+	column_hcommons.AppendChild(archaeology);
 	column_hcommons.AppendChild(hcommons);
 	column_github.AppendChild(developer);
 	column_github.AppendChild(github);
