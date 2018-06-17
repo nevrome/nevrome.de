@@ -30,7 +30,7 @@ Released under the MIT licence: http://opensource.org/licenses/mit-license
     opts = typeof opts === 'string' ? JSON.parse(opts) : {};
     siteRepoNames = [(user + ".github.com").toLowerCase(), (user + ".github.io").toLowerCase()];
     sortBy = 'stargazers_count';/*opts.sortBy || 'watchers';*/
-    limit = 4;/**parseInt(opts.limit) || 2e308;*/
+    limit = 6;/**parseInt(opts.limit) || 2e308;*/
     made = 0;
     ref = payloadData.sort(function(a, b) {
       return b[sortBy] - a[sortBy];
@@ -75,10 +75,7 @@ Released under the MIT licence: http://opensource.org/licenses/mit-license
                     cls: 'gw-name'
                   })
                 ]
-              }), repo.language != null ? make({
-                cls: 'gw-lang',
-                text: repo.language
-              }) : void 0, make({
+              }), make({
                 cls: 'gw-repo-desc',
                 text: repo.description
               })

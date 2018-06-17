@@ -24,7 +24,7 @@ int main(int argc, char* argv[]){
 	CTML::Node twitter = CTML::Node("a");
 	twitter.SetAttribute("class", "twitter-timeline");
 	twitter.SetAttribute("href", "https://twitter.com/nevromeCS?ref_src=twsrc%5Etfw");
-	twitter.SetAttribute("data-height", "700px");
+	twitter.SetAttribute("data-height", "390px");
 
 	// github
 	CTML::Node github = CTML::Node("iframe");
@@ -35,7 +35,18 @@ int main(int argc, char* argv[]){
 	github.SetAttribute("seamless", "seamless");
 	github.SetAttribute("src", "http://colmdoyle.github.io/gh-activity/gh-activity.html?user=nevrome&type=user");
 	github.SetAttribute("width", "100%");
-	github.SetAttribute("height", "700px");
+	github.SetAttribute("height", "390px");
+
+	// hcommons
+	CTML::Node hcommons = CTML::Node("iframe");
+	hcommons.SetAttribute("class", "iframe");
+	hcommons.SetAttribute("allowtransparency", "true");
+	hcommons.SetAttribute("frameborder", "0");
+	hcommons.SetAttribute("scrolling", "yes");
+	hcommons.SetAttribute("seamless", "seamless");
+	hcommons.SetAttribute("src", "https://hcommons.org/members/nevrome/");
+	hcommons.SetAttribute("width", "100%");
+	hcommons.SetAttribute("height", "390px");
 
 	// github 2
 	CTML::Node github_repos_css = CTML::Node("link");
@@ -46,24 +57,12 @@ int main(int argc, char* argv[]){
 	CTML::Node github_repos_script = CTML::Node("script");
 	github_repos_script.SetAttribute("src", "github-widget/github-widget.js");
 	github_repos_script.SetAttribute("charset", "utf-8");
-	CTML::Node github_repos = CTML::Node("div");
-	github_repos.SetAttribute("class", "github-widget");
-	github_repos.SetAttribute("data-user", "nevrome");
-	CTML::Node github_repos_ISAAK = CTML::Node("div");
-	github_repos_ISAAK.SetAttribute("class", "github-widget");
-	github_repos_ISAAK.SetAttribute("data-user", "ISAAKiel");
-
-	
-	// hcommons
-	CTML::Node hcommons = CTML::Node("iframe");
-	hcommons.SetAttribute("class", "iframe");
-	hcommons.SetAttribute("allowtransparency", "true");
-	hcommons.SetAttribute("frameborder", "0");
-	hcommons.SetAttribute("scrolling", "yes");
-	hcommons.SetAttribute("seamless", "seamless");
-	hcommons.SetAttribute("src", "https://hcommons.org/members/nevrome/");
-	hcommons.SetAttribute("width", "100%");
-	hcommons.SetAttribute("height", "700px");
+	CTML::Node github_repos_nevrome = CTML::Node("div");
+	github_repos_nevrome.SetAttribute("class", "github-widget");
+	github_repos_nevrome.SetAttribute("data-user", "nevrome");
+	CTML::Node github_repos_ISAAKiel = CTML::Node("div");
+	github_repos_ISAAKiel.SetAttribute("class", "github-widget");
+	github_repos_ISAAKiel.SetAttribute("data-user", "ISAAKiel");
 
 	// header archaeologist
 	CTML::Node archaeologist = CTML::Node("div");
@@ -112,6 +111,8 @@ int main(int argc, char* argv[]){
 
 	// actual page structure
 	
+	// row1	
+
 	CTML::Node row = CTML::Node("div").SetAttribute("class", "row"); 
 
 	CTML::Node column_hcommons = CTML::Node("div").SetAttribute("class", "column"); 
@@ -121,18 +122,29 @@ int main(int argc, char* argv[]){
 	column_hcommons.AppendChild(archaeologist);
 	column_hcommons.AppendChild(hcommons);
 	column_github.AppendChild(developer);
-	column_github.AppendChild(github_repos);
-	column_github.AppendChild(github_repos_ISAAK);
 	column_github.AppendChild(github);
 	column_twitter.AppendChild(beyond);
 	column_twitter.AppendChild(twitter);
-
 
 	row.AppendChild(column_hcommons);	
 	row.AppendChild(column_github);	
 	row.AppendChild(column_twitter);	
 
-	doc.AddNodeToBody(row);	
+	// row2
+
+	CTML::Node row2 = CTML::Node("div").SetAttribute("class", "row"); 
+
+	CTML::Node column_github_nevrome = CTML::Node("div").SetAttribute("class", "column2"); 
+	CTML::Node column_github_ISAAKiel = CTML::Node("div").SetAttribute("class", "column3"); 
+
+	column_github_nevrome.AppendChild(github_repos_nevrome);	
+	column_github_ISAAKiel.AppendChild(github_repos_ISAAKiel);	
+	
+	row2.AppendChild(column_github_nevrome);
+	row2.AppendChild(column_github_ISAAKiel);
+
+	doc.AddNodeToBody(row);
+	doc.AddNodeToBody(row2);		
 
 	doc.AddNodeToBody(github_repos_script);
 

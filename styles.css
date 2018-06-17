@@ -16,22 +16,47 @@ body {
 .row {
     display: flex;
     flex-wrap: wrap;
+		margin-top: 20px;
 }
 
-/* Create four equal columns that sits next to each other */
 .column {
-    flex: 33.3%;
-    max-width: 33.3%;
-    padding-left:1.5em;
-		padding-right:1.5em;
+    flex: 31%;
+    max-width: 31%;
+		margin-left: 1%;
+    margin-right: 1%;
 }
 
-/* Responsive layout - makes the columns stack on top of each other instead of next to each other */
+.column2 {
+    flex: 49%;
+    max-width: 49%;
+		margin-left: 1%;
+    margin-right: 0;
+}
+
+.column3 {
+    flex: 49%;
+    max-width: 49%;
+		margin-left: 0;
+    margin-right: 1%;
+}
+
 @media (max-width: 1200px) {
     .column {
         flex: 100%;
         max-width: 100%;
-				height: 1000px;
+				height: 580px;
+    }
+		.column2 {
+        flex: 98%;
+        max-width: 98%;
+				margin-left: 1%;
+				margin-right: 0%;
+    }
+		.column3 {
+        flex: 98%;
+        max-width: 98%;
+				margin-left: 1%;
+				margin-right: 0%;
     }
 }
 
@@ -40,12 +65,29 @@ body {
 }
 
 .top_boxes {
-	height: 200px;
-	margin-top: 20px;
+	height: 150px;
 	margin-bottom: 20px;
 	border-radius: 7px;
 	padding-top: 1px;
   padding-right: 15px;
   padding-bottom: 5px;
   padding-left: 15px;
+}
+
+/* links */
+
+a:link {
+    color: white;
+}
+
+a:visited {
+    color: white;
+}
+
+a:hover {
+    color: white;
+}
+
+a:active {
+    color: white;
 }
