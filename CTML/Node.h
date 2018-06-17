@@ -264,9 +264,9 @@ namespace CTML {
 				}
 			}
 			// replaces all instances of "<" in the content with "&lt;", to escape rogue HTML
-			result = _ReplaceAllOccurrences(result, "<", "&lt;");
+			//result = _ReplaceAllOccurrences(result, "<", "&lt;");
 			// replaces all instances of ">" in the content with "&gt;" to escape rogue HTML
-			result = _ReplaceAllOccurrences(result, ">", "&gt;");
+			//result = _ReplaceAllOccurrences(result, ">", "&gt;");
 			// return the result of the content
 			return result;
 		}
