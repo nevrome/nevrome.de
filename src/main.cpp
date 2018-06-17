@@ -115,9 +115,9 @@ int main(int argc, char* argv[]){
 
 	CTML::Node row = CTML::Node("div").SetAttribute("class", "row"); 
 
-	CTML::Node column_hcommons = CTML::Node("div").SetAttribute("class", "column"); 
-	CTML::Node column_twitter = CTML::Node("div").SetAttribute("class", "column"); 
-	CTML::Node column_github = CTML::Node("div").SetAttribute("class", "column"); 
+	CTML::Node column_hcommons = CTML::Node("div").SetAttribute("class", "columnL"); 
+	CTML::Node column_github = CTML::Node("div").SetAttribute("class", "columnM"); 
+	CTML::Node column_twitter = CTML::Node("div").SetAttribute("class", "columnR"); 
 	
 	column_hcommons.AppendChild(archaeologist);
 	column_hcommons.AppendChild(hcommons);
