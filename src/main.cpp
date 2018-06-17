@@ -33,9 +33,10 @@ int main(int argc, char* argv[]){
 	github.SetAttribute("frameborder", "0");
 	github.SetAttribute("scrolling", "yes");
 	github.SetAttribute("seamless", "seamless");
-	github.SetAttribute("src", "http://colmdoyle.github.io/gh-activity/gh-activity.html?user=nevrome&type=user");
+	github.SetAttribute("src", "https://cdoyle.me/gh-activity/gh-activity.html?user=nevrome&type=user");
 	github.SetAttribute("width", "100%");
 	github.SetAttribute("height", "510px");
+	github.SetAttribute("sandbox", "allow-forms allow-scripts");
 
 	// hcommons
 	CTML::Node hcommons = CTML::Node("iframe");
