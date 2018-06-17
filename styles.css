@@ -85,11 +85,12 @@ body {
 	height: 130px;
 	margin-bottom: 20px;
 	border-radius: 7px;
-	padding-top: 1px;
   padding-right: 15px;
-  padding-bottom: 5px;
   padding-left: 15px;
-	color:white;
+	color: white;
+	display:flex;
+  align-items: center; /* Vertical center alignment */
+  justify-content: center; /* Horizontal center alignment */
 }
 
 /* links */

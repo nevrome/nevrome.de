@@ -69,10 +69,15 @@ int main(int argc, char* argv[]){
 	archaeology.SetAttribute("class", "top_boxes");
 	archaeology.SetAttribute("style", "background-color: #006650;");
 	
-	CTML::Node archaeology_header = CTML::Node("h3");
-	archaeology_header.SetContent("Archaeology");
+	CTML::Node archaeology_text = CTML::Node("p");
+	archaeology_text.SetContent(
+		" I'm <b>Clemens Schmid</b>, a student of Pre- and Protohistoric Archaeology \
+			with a focus on Computational Archaeology. This is my personal website. <br> \
+			I try to keep track of my academic career, talks and papers in my \
+			<a href=\"https://hcommons.org/members/nevrome/\">Humanities Commons</a> profile. "
+	);
 
-	archaeology.AppendChild(archaeology_header);
+	archaeology.AppendChild(archaeology_text);
 
 	// header developer
 
@@ -80,21 +85,33 @@ int main(int argc, char* argv[]){
 	developer.SetAttribute("class", "top_boxes");
 	developer.SetAttribute("style", "background-color: #4B88A2;");
 
-	CTML::Node github_header = CTML::Node("h3");
-	github_header.SetContent("Software projects");
+	CTML::Node developer_text = CTML::Node("p");
+	developer_text.SetContent(
+		" I'm working on some scientific open source software development projects - \
+			mostly in R and C++. <br> \
+			All of them are on github. Some on \
+			<a href=\"https://github.com/nevrome\">my own profile</a>, some \
+			on the organisational profile of the working group \
+			<a href=\"https://github.com/ISAAKiel\">ISAAK</a>. "
+	);
 	
-	developer.AppendChild(github_header);
+	developer.AppendChild(developer_text);
 	
 	// header beyond
 
-	CTML::Node beyond = CTML::Node("div");
-	beyond.SetAttribute("class", "top_boxes");
-	beyond.SetAttribute("style", "background-color: #1da1f2;");	
+	CTML::Node contact = CTML::Node("div");
+	contact.SetAttribute("class", "top_boxes");
+	contact.SetAttribute("style", "background-color: #1da1f2;");	
 
-	CTML::Node twitter_header = CTML::Node("h3");
-	twitter_header.SetContent("Contact");
+	CTML::Node contact_text = CTML::Node("p");
+	contact_text.SetContent(
+		" The best way to contact me is via E-mail: <a href=\"&#x6d;&#x61;&#x69;&#x6c;&#x74;&#111;&#x3a;&#99;&#x6c;&#x65;&#109;&#101;&#x6e;&#x73;&#x40;&#x6e;&#101;&#x76;&#x72;&#x6f;&#109;&#101;&#46;&#x64;&#101;\">&#x63;&#x6c;&#101;&#109;&#101;&#x6e;&#x73;&#x40;&#x6e;&#101;&#118;&#x72;&#111;&#x6d;&#x65;&#46;&#x64;&#101;</a>. <br> \
+		  I'm also on <a href=\"https://twitter.com/nevromecs\">twitter</a> and I love \
+			testing out the latest messenger apps. I'm currently living in Kiel (Germany) if \
+			you want to meet me in person. "
+	);
 
-	beyond.AppendChild(twitter_header);
+	contact.AppendChild(contact_text);
 
 	// actual page structure
 	
@@ -110,7 +127,7 @@ int main(int argc, char* argv[]){
 	column_hcommons.AppendChild(hcommons);
 	column_github.AppendChild(developer);
 	column_github.AppendChild(github);
-	column_twitter.AppendChild(beyond);
+	column_twitter.AppendChild(contact);
 	column_twitter.AppendChild(twitter);
 
 	row.AppendChild(column_hcommons);	
