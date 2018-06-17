@@ -89,11 +89,9 @@ body {
   padding-left: 15px;
 	color: white;
 	display:flex;
-  align-items: center; /* Vertical center alignment */
-  justify-content: center; /* Horizontal center alignment */
+  align-items: center; 
+  justify-content: center;
 }
-
-/* links */
 
 a:link {
     color: white;

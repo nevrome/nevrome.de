@@ -2,31 +2,34 @@
 
 int main(int argc, char* argv[]){
 
+	// read html output path from input arguments
 	if (argc < 2) { return(EXIT_FAILURE); }
  	std::string ideas_file_path = argv[1];
 
-	//// load and prepare stuff ////
-
+	// create general page object
 	CTML::Document doc;
 	
-	// css
+	// load css
 	CTML::Node ref_to_css = CTML::Node("link");
 	ref_to_css.SetAttribute("href", "styles.css");
 	ref_to_css.SetAttribute("type", "text/css");
 	ref_to_css.SetAttribute("rel", "stylesheet");	
 	doc.AddNodeToHead(ref_to_css);
 
-	// twitter
-	CTML::Node twitter_script = CTML::Node("script");
-	twitter_script.SetAttribute("src", "https://platform.twitter.com/widgets.js");
-	twitter_script.SetAttribute("charset", "utf-8");
-	doc.AddNodeToBody(twitter_script);
-	CTML::Node twitter = CTML::Node("a");
-	twitter.SetAttribute("class", "twitter-timeline");
-	twitter.SetAttribute("href", "https://twitter.com/nevromeCS?ref_src=twsrc%5Etfw");
-	twitter.SetAttribute("data-height", "510px");
+	//// prepare iframes and widgets ////
 
-	// github
+	// prepare hcommons iframe 
+	CTML::Node hcommons = CTML::Node("iframe");
+	hcommons.SetAttribute("class", "iframe");
+	hcommons.SetAttribute("allowtransparency", "true");
+	hcommons.SetAttribute("frameborder", "0");
+	hcommons.SetAttribute("scrolling", "yes");
+	hcommons.SetAttribute("seamless", "seamless");
+	hcommons.SetAttribute("src", "https://hcommons.org/members/nevrome/");
+	hcommons.SetAttribute("width", "100%");
+	hcommons.SetAttribute("height", "510px");
+
+	// prepare github activity iframe
 	CTML::Node github = CTML::Node("iframe");
 	github.SetAttribute("class", "iframe");
 	github.SetAttribute("allowtransparency", "true");
@@ -38,18 +41,17 @@ int main(int argc, char* argv[]){
 	github.SetAttribute("height", "510px");
 	github.SetAttribute("sandbox", "allow-forms allow-scripts");
 
-	// hcommons
-	CTML::Node hcommons = CTML::Node("iframe");
-	hcommons.SetAttribute("class", "iframe");
-	hcommons.SetAttribute("allowtransparency", "true");
-	hcommons.SetAttribute("frameborder", "0");
-	hcommons.SetAttribute("scrolling", "yes");
-	hcommons.SetAttribute("seamless", "seamless");
-	hcommons.SetAttribute("src", "https://hcommons.org/members/nevrome/");
-	hcommons.SetAttribute("width", "100%");
-	hcommons.SetAttribute("height", "510px");
+	// prepare twitter activity widget
+	CTML::Node twitter_script = CTML::Node("script");
+	twitter_script.SetAttribute("src", "https://platform.twitter.com/widgets.js");
+	twitter_script.SetAttribute("charset", "utf-8");
+	doc.AddNodeToBody(twitter_script);
+	CTML::Node twitter = CTML::Node("a");
+	twitter.SetAttribute("class", "twitter-timeline");
+	twitter.SetAttribute("href", "https://twitter.com/nevromeCS?ref_src=twsrc%5Etfw");
+	twitter.SetAttribute("data-height", "510px");
 
-	// github 2
+	// prepare github repositories widget
 	CTML::Node github_repos_css = CTML::Node("link");
 	github_repos_css.SetAttribute("href", "github-widget/github-widget.css");
 	github_repos_css.SetAttribute("type", "text/css");
@@ -65,7 +67,9 @@ int main(int argc, char* argv[]){
 	github_repos_ISAAKiel.SetAttribute("class", "github-widget");
 	github_repos_ISAAKiel.SetAttribute("data-user", "ISAAKiel");
 
-	// top box archaeology
+	//// prepare text boxes at the top ////
+
+	// top box 1
 	CTML::Node archaeology = CTML::Node("div");
 	archaeology.SetAttribute("class", "top_boxes");
 	archaeology.SetAttribute("style", "background-color: #006650;");
@@ -80,8 +84,7 @@ int main(int argc, char* argv[]){
 
 	archaeology.AppendChild(archaeology_text);
 
-	// header developer
-
+	// top box 2
 	CTML::Node developer = CTML::Node("div");
 	developer.SetAttribute("class", "top_boxes");
 	developer.SetAttribute("style", "background-color: #4B88A2;");
@@ -98,8 +101,7 @@ int main(int argc, char* argv[]){
 	
 	developer.AppendChild(developer_text);
 	
-	// header beyond
-
+	// top box 3
 	CTML::Node contact = CTML::Node("div");
 	contact.SetAttribute("class", "top_boxes");
 	contact.SetAttribute("style", "background-color: #1da1f2;");	
@@ -114,10 +116,9 @@ int main(int argc, char* argv[]){
 
 	contact.AppendChild(contact_text);
 
-	// actual page structure
+	//// construct page from prepared elements ////
 	
-	// row1	
-
+	// row 1	
 	CTML::Node row = CTML::Node("div").SetAttribute("class", "row"); 
 
 	CTML::Node column_hcommons = CTML::Node("div").SetAttribute("class", "columnL"); 
@@ -135,8 +136,7 @@ int main(int argc, char* argv[]){
 	row.AppendChild(column_github);	
 	row.AppendChild(column_twitter);	
 
-	// row2
-
+	// row 2
 	CTML::Node row2 = CTML::Node("div").SetAttribute("class", "row"); 
 
 	CTML::Node column_github_nevrome = CTML::Node("div").SetAttribute("class", "column2"); 
@@ -148,9 +148,10 @@ int main(int argc, char* argv[]){
 	row2.AppendChild(column_github_nevrome);
 	row2.AppendChild(column_github_ISAAKiel);
 
+	//// final construction and output ////
+
 	doc.AddNodeToBody(row);
 	doc.AddNodeToBody(row2);		
-
 	doc.AddNodeToBody(github_repos_script);
 
 	std::string index_html_path = ideas_file_path + "index.html";
