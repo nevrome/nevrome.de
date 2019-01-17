@@ -1,0 +1,372 @@
+<!doctype html>
+<html>
+
+<!-- Header -->
+
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clemens Schmid</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/normalize/5.0.0/normalize.min.css" rel="stylesheet" type="text/css">
+
+
+
+<!-- CSS -->
+
+<style>
+
+html, body { height: 100%; }
+
+body {
+  background: white;
+  font-family: 'Open Sans', sans-serif;
+}
+
+a { color: inherit; text-decoration: inherit; } 
+
+nav {
+  display: block;
+  position: fixed;
+  width: 700px;
+  height: 700px;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-transform: translate3d(25px, -25px, 0);
+  transform: translate3d(25px, -25px, 0);
+  -webkit-transition: -webkit-transform 0.5s cubic-bezier(0.3, 1.4, 0.5, 0.9);
+  transition: -webkit-transform 0.5s cubic-bezier(0.3, 1.4, 0.5, 0.9);
+  transition: transform 0.5s cubic-bezier(0.3, 1.4, 0.5, 0.9);
+  transition: transform 0.5s cubic-bezier(0.3, 1.4, 0.5, 0.9), -webkit-transform 0.5s cubic-bezier(0.3, 1.4, 0.5, 0.9);
+}
+
+nav.open {
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+}
+
+nav.center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  -webkit-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+}
+
+.disc {
+  position: absolute;
+  display: inline-block;
+  text-align: center;
+  cursor: pointer;
+  font: 20px Alegreya Sans, sans-serif;
+  line-height: 30px;
+  padding-top: 10px;
+  border-radius: 50px;
+  -webkit-transform: scale3d(0.5, 0.5, 0.5) rotate3d(0, 0, 1, 200deg);
+  transform: scale3d(0.5, 0.5, 0.5) rotate3d(0, 0, 1, 200deg);
+  pointer-events: none;
+  opacity: 0;
+  cursor: pointer;
+  -webkit-transition: opacity 0.5s, -webkit-transform 0.5s cubic-bezier(0.3, 1.4, 0.5, 0.9);
+  transition: opacity 0.5s, -webkit-transform 0.5s cubic-bezier(0.3, 1.4, 0.5, 0.9);
+  transition: transform 0.5s cubic-bezier(0.3, 1.4, 0.5, 0.9), opacity 0.5s;
+  transition: transform 0.5s cubic-bezier(0.3, 1.4, 0.5, 0.9), opacity 0.5s, -webkit-transform 0.5s cubic-bezier(0.3, 1.4, 0.5, 0.9);
+}
+
+.disc div {
+  -webkit-transform: rotate(180deg);
+  transform: rotate(180deg);
+}
+
+.open .disc {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.l1 {
+  top: 0px;
+  left: 0px;
+  right: 0px;
+  bottom: 0px;
+  background: #048BA8;
+	color: white;
+  -webkit-transition-delay: 0s;
+  transition-delay: 0s;
+}
+
+.open .l1 {
+  -webkit-transition-delay: 0s;
+  transition-delay: 0s;
+  -webkit-transform: scale3d(1, 1, 1) rotate3d(0, 0, 1, 200deg);
+  transform: scale3d(1, 1, 1) rotate3d(0, 0, 1, 200deg);
+  opacity: 1;
+}
+
+.open .l1:hover {
+  background: #19535F;
+  color: gold;
+  -webkit-transition-delay: 0s;
+  transition-delay: 0s;
+}
+
+.open .l1:active {
+  background: #19535F;
+  color: gold;
+}
+
+.open .l1.toggle {
+  -webkit-transform: scale3d(0.9, 0.9, 0.9) rotate3d(0, 0, 1, 20deg);
+  transform: scale3d(0.9, 0.9, 0.9) rotate3d(0, 0, 1, 20deg);
+}
+
+.l2 {
+  top: 50px;
+  left: 50px;
+  right: 50px;
+  bottom: 50px;
+  background: #D62828;
+	color: white;
+  -webkit-transition-delay: 0.1s;
+  transition-delay: 0.1s;
+}
+
+.open .l2 {
+  -webkit-transition-delay: 0.1s;
+  transition-delay: 0.1s;
+  -webkit-transform: scale3d(1, 1, 1) rotate3d(0, 0, 1, 200deg);
+  transform: scale3d(1, 1, 1) rotate3d(0, 0, 1, 200deg);
+  opacity: 1;
+}
+
+.open .l2:hover {
+  background: #19535F;
+  color: gold;
+  -webkit-transition-delay: 0s;
+  transition-delay: 0s;
+}
+
+.open .l2:active {
+  background: #19535F;
+  color: gold;
+}
+
+.open .l2.toggle {
+  -webkit-transform: scale3d(0.9, 0.9, 0.9) rotate3d(0, 0, 1, 20deg);
+  transform: scale3d(0.9, 0.9, 0.9) rotate3d(0, 0, 1, 20deg);
+}
+
+.l3 {
+  top: 100px;
+  left: 100px;
+  right: 100px;
+  bottom: 100px;
+  background: #048BA8;
+	color: white;
+  -webkit-transition-delay: 0.2s;
+  transition-delay: 0.2s;
+}
+
+.open .l3 {
+  -webkit-transition-delay: 0.2s;
+  transition-delay: 0.2s;
+  -webkit-transform: scale3d(1, 1, 1) rotate3d(0, 0, 1, 200deg);
+  transform: scale3d(1, 1, 1) rotate3d(0, 0, 1, 200deg);
+  opacity: 1;
+}
+
+.open .l3:hover {
+  background: #19535F;
+  color: gold;
+  -webkit-transition-delay: 0s;
+  transition-delay: 0s;
+}
+
+.open .l3:active {
+  background: #19535F;
+  color: gold;
+}
+
+.open .l3.toggle {
+  -webkit-transform: scale3d(0.9, 0.9, 0.9) rotate3d(0, 0, 1, 20deg);
+  transform: scale3d(0.9, 0.9, 0.9) rotate3d(0, 0, 1, 20deg);
+}
+
+.l4 {
+  top: 150px;
+  left: 150px;
+  right: 150px;
+  bottom: 150px;
+  background: #D62828;
+	color: white;
+  -webkit-transition-delay: 0.3s;
+  transition-delay: 0.3s;
+}
+
+.open .l4 {
+  -webkit-transition-delay: 0.3s;
+  transition-delay: 0.3s;
+  -webkit-transform: scale3d(1, 1, 1) rotate3d(0, 0, 1, 200deg);
+  transform: scale3d(1, 1, 1) rotate3d(0, 0, 1, 200deg);
+  opacity: 1;
+}
+
+.open .l4:hover {
+  background: #19535F;
+  color: gold;
+  -webkit-transition-delay: 0s;
+  transition-delay: 0s;
+}
+
+.open .l4:active {
+  background: #80550e;
+  color: gold;
+}
+
+.open .l4.toggle {
+  -webkit-transform: scale3d(0.9, 0.9, 0.9) rotate3d(0, 0, 1, 20deg);
+  transform: scale3d(0.9, 0.9, 0.9) rotate3d(0, 0, 1, 20deg);
+}
+
+.l5 {
+  top: 200px;
+  left: 200px;
+  right: 200px;
+  bottom: 200px;
+  background: #048BA8;
+	color: white; 
+  -webkit-transition-delay: 0.4s;
+  transition-delay: 0.4s;
+}
+
+.open .l5 {
+  -webkit-transition-delay: 0.4s;
+  transition-delay: 0.4s;
+  -webkit-transform: scale3d(1, 1, 1) rotate3d(0, 0, 1, 200deg);
+  transform: scale3d(1, 1, 1) rotate3d(0, 0, 1, 200deg);
+  opacity: 1;
+}
+
+.open .l5:hover {
+  background: #19535F;
+  color: gold;
+  -webkit-transition-delay: 0s;
+  transition-delay: 0s;
+}
+
+.open .l5:active {
+  background: #19535F;
+  color: gold;
+}
+
+.open .l5.toggle {
+  -webkit-transform: scale3d(0.9, 0.9, 0.9) rotate3d(0, 0, 1, 20deg);
+  transform: scale3d(0.9, 0.9, 0.9) rotate3d(0, 0, 1, 20deg);
+}
+
+.toggle {
+  line-height: 80px;
+  padding: 0;
+  width: 300px;
+  background: #048BA8;
+  opacity: 1;
+  -webkit-transform: none;
+  transform: none;
+  pointer-events: auto;
+  -webkit-transition-delay: 0s;
+  transition-delay: 0s;
+}
+
+.open .toggle {
+  -webkit-transform: rotate3d(0, 0, 1, 0deg);
+  transform: rotate3d(0, 0, 1, 0deg);
+}
+
+.toggle:hover {
+  background: #19535F;
+  color: gold;
+}
+
+.toggle:active {
+  background: #19535F;
+  color: gold;
+  -webkit-transform: scale(0.9);
+  transform: scale(0.9);
+  -webkit-transition-duration: 0s;
+  transition-duration: 0s;
+}
+
+#avatar {
+  background-image: url('https://github.com/nevrome/nevrome.de/raw/master/KEX16_2016_08_13_Fontaene_cropped_small.jpg');
+  width: 150px;
+  height: 150px;
+  background-size: cover;
+  background-position: top center;
+  border-radius: 50%;
+	position: absolute;
+  left: 50%;
+  top: 50%;
+  -webkit-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+}
+
+#thispage {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	font-size: 0.8em;
+}
+
+</style>
+</head>
+
+
+
+<!-- HTML -->
+
+<body>
+<nav class="center"> 
+	<a href="&#x6d;&#x61;&#x69;&#x6c;&#x74;&#111;&#x3a;&#99;&#x6c;&#x65;&#109;&#101;&#x6e;&#x73;&#x40;&#x6e;&#101;&#x76;&#x72;&#x6f;&#109;&#101;&#46;&#x64;&#101;"
+ 	class="disc l1">
+  <div>Email</div>
+  </a> 
+	<a href="https://hcommons.org/members/nevrome" class="disc l2">
+  <div>Humanities Commons</div>
+  </a> 
+	<a href="https://twitter.com/nevromecs" class="disc l3">
+  <div>Twitter</div>
+  </a> 
+	<a href="https://github.com/nevrome" class="disc l4">
+  <div>Github</div>
+  </a> 
+	<a class="disc l5 toggle"> Clemens Schmid 
+	</a> 
+</nav>
+
+<div id="avatar"></div>
+<div id="thispage"> 
+	<a href="https://codepen.io/bennettfeely/pen/qRJOZJ">
+		Thank you for the template, Bennett Feely.
+	</a>
+</div>
+
+<script>
+toggle = document.querySelectorAll(".toggle")[0];
+nav = document.querySelectorAll("nav")[0];
+toggle_open_text = 'Clemens Schmid';
+toggle_close_text = 'Clemens Schmid';
+
+toggle.addEventListener('click', function() {
+	nav.classList.toggle('open');
+	
+  if (nav.classList.contains('open')) {
+    toggle.innerHTML = toggle_close_text;
+  } else {
+    toggle.innerHTML = toggle_open_text;
+  }
+}, false);
+</script>
+
+</body>
+</html>

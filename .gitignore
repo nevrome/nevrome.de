@@ -32,7 +32,4 @@
 *.app
 homepage_builder
 
-# Rendered hompage
-homepage
-*.html
 
