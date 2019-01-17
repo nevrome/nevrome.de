@@ -9,7 +9,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Clemens Schmid</title>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/normalize/5.0.0/normalize.min.css" rel="stylesheet" type="text/css">
-
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" 
+integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
 
 
 <!-- CSS -->
@@ -63,7 +64,9 @@ nav.center {
   font: 20px Alegreya Sans, sans-serif;
   line-height: 30px;
   padding-top: 10px;
-  border-radius: 50px;
+  border-radius: 5px;
+	border-style: solid;
+	border-color: black;
   -webkit-transform: scale3d(0.5, 0.5, 0.5) rotate3d(0, 0, 1, 200deg);
   transform: scale3d(0.5, 0.5, 0.5) rotate3d(0, 0, 1, 200deg);
   pointer-events: none;
@@ -90,8 +93,8 @@ nav.center {
   left: 0px;
   right: 0px;
   bottom: 0px;
-  background: #048BA8;
-	color: white;
+  background: white;
+	color: black;
   -webkit-transition-delay: 0s;
   transition-delay: 0s;
 }
@@ -105,15 +108,15 @@ nav.center {
 }
 
 .open .l1:hover {
-  background: #19535F;
-  color: gold;
+  background: black;
+  color: white;
   -webkit-transition-delay: 0s;
   transition-delay: 0s;
 }
 
 .open .l1:active {
-  background: #19535F;
-  color: gold;
+  background: black;
+  color: white;
 }
 
 .open .l1.toggle {
@@ -126,8 +129,8 @@ nav.center {
   left: 50px;
   right: 50px;
   bottom: 50px;
-  background: #D62828;
-	color: white;
+  background: white;
+	color: black;
   -webkit-transition-delay: 0.1s;
   transition-delay: 0.1s;
 }
@@ -141,15 +144,15 @@ nav.center {
 }
 
 .open .l2:hover {
-  background: #19535F;
-  color: gold;
+  background: black;
+  color: white;
   -webkit-transition-delay: 0s;
   transition-delay: 0s;
 }
 
 .open .l2:active {
-  background: #19535F;
-  color: gold;
+  background: black;
+  color: white;
 }
 
 .open .l2.toggle {
@@ -162,8 +165,8 @@ nav.center {
   left: 100px;
   right: 100px;
   bottom: 100px;
-  background: #048BA8;
-	color: white;
+  background: white;
+	color: black;
   -webkit-transition-delay: 0.2s;
   transition-delay: 0.2s;
 }
@@ -177,15 +180,15 @@ nav.center {
 }
 
 .open .l3:hover {
-  background: #19535F;
-  color: gold;
+  background: black;
+  color: white;
   -webkit-transition-delay: 0s;
   transition-delay: 0s;
 }
 
 .open .l3:active {
-  background: #19535F;
-  color: gold;
+  background: black;
+  color: white;
 }
 
 .open .l3.toggle {
@@ -198,8 +201,8 @@ nav.center {
   left: 150px;
   right: 150px;
   bottom: 150px;
-  background: #D62828;
-	color: white;
+  background: white;
+	color: black;
   -webkit-transition-delay: 0.3s;
   transition-delay: 0.3s;
 }
@@ -213,15 +216,15 @@ nav.center {
 }
 
 .open .l4:hover {
-  background: #19535F;
-  color: gold;
+  background: black;
+  color: white;
   -webkit-transition-delay: 0s;
   transition-delay: 0s;
 }
 
 .open .l4:active {
   background: #80550e;
-  color: gold;
+  color: white;
 }
 
 .open .l4.toggle {
@@ -234,8 +237,8 @@ nav.center {
   left: 200px;
   right: 200px;
   bottom: 200px;
-  background: #048BA8;
-	color: white; 
+  background: white;
+	color: black; 
   -webkit-transition-delay: 0.4s;
   transition-delay: 0.4s;
 }
@@ -249,15 +252,15 @@ nav.center {
 }
 
 .open .l5:hover {
-  background: #19535F;
-  color: gold;
+  background: black;
+  color: white;
   -webkit-transition-delay: 0s;
   transition-delay: 0s;
 }
 
 .open .l5:active {
-  background: #19535F;
-  color: gold;
+  background: black;
+  color: white;
 }
 
 .open .l5.toggle {
@@ -269,7 +272,7 @@ nav.center {
   line-height: 80px;
   padding: 0;
   width: 300px;
-  background: #048BA8;
+  background: white;
   opacity: 1;
   -webkit-transform: none;
   transform: none;
@@ -284,13 +287,13 @@ nav.center {
 }
 
 .toggle:hover {
-  background: #19535F;
-  color: gold;
+  background: black;
+  color: white;
 }
 
 .toggle:active {
-  background: #19535F;
-  color: gold;
+  background: black;
+  color: white;
   -webkit-transform: scale(0.9);
   transform: scale(0.9);
   -webkit-transition-duration: 0s;
@@ -330,16 +333,16 @@ nav.center {
 <nav class="center"> 
 	<a href="&#x6d;&#x61;&#x69;&#x6c;&#x74;&#111;&#x3a;&#99;&#x6c;&#x65;&#109;&#101;&#x6e;&#x73;&#x40;&#x6e;&#101;&#x76;&#x72;&#x6f;&#109;&#101;&#46;&#x64;&#101;"
  	class="disc l1">
-  <div>Email</div>
+  <div><i class="fas fa-at"></i> Email</div>
   </a> 
 	<a href="https://hcommons.org/members/nevrome" class="disc l2">
-  <div>Humanities Commons</div>
+  <div><i class="fas fa-comments"></i> Humanities Commons</div>
   </a> 
 	<a href="https://twitter.com/nevromecs" class="disc l3">
-  <div>Twitter</div>
+  <div><i class="fab fa-twitter"></i> Twitter</div>
   </a> 
 	<a href="https://github.com/nevrome" class="disc l4">
-  <div>Github</div>
+  <div><i class="fab fa-github"></i> Github</div>
   </a> 
 	<a class="disc l5 toggle"> Clemens Schmid 
 	</a> 
