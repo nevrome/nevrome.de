@@ -21,10 +21,12 @@ html, body { height: 100%; }
 
 body {
   background: white;
-  font-family: 'Open Sans', sans-serif;
 }
 
-a { color: inherit; text-decoration: inherit; } 
+a { 
+	color: darkgreen; 
+	text-decoration: underline;
+} 
 
 nav {
   display: block;
@@ -51,7 +53,7 @@ nav.open {
 nav.center {
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: 20%;
   -webkit-transform: translate(-50%, -50%);
   transform: translate(-50%, -50%);
 }
@@ -61,12 +63,13 @@ nav.center {
   display: inline-block;
   text-align: center;
   cursor: pointer;
-  font: 20px Alegreya Sans, sans-serif;
+	font-family: 20px "Courier New", monospace;
   line-height: 30px;
   padding-top: 10px;
   border-radius: 5px;
 	border-style: solid;
 	border-color: black;
+	border-width: thin;
   -webkit-transform: scale3d(0.5, 0.5, 0.5) rotate3d(0, 0, 1, 200deg);
   transform: scale3d(0.5, 0.5, 0.5) rotate3d(0, 0, 1, 200deg);
   pointer-events: none;
@@ -233,6 +236,7 @@ nav.center {
 }
 
 .l5 {
+	border-style: solid;
   top: 200px;
   left: 200px;
   right: 200px;
@@ -309,10 +313,19 @@ nav.center {
   border-radius: 50%;
 	position: absolute;
   left: 50%;
-  top: 50%;
+  top: 20%;
   -webkit-transform: translate(-50%, -50%);
   transform: translate(-50%, -50%);
 	pointer-events: none;
+}
+
+#textbox {
+  width: 500px;
+  height: 400px;
+	display: block;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 550px;
 }
 
 #thispage {
@@ -344,11 +357,41 @@ nav.center {
 	<a href="https://github.com/nevrome" class="disc l4">
   <div><i class="fab fa-github"></i> Github</div>
   </a> 
-	<a class="disc l5 toggle"> Clemens Schmid 
+	<a class="disc l5 toggle"> 
+		Clemens Schmid
 	</a> 
 </nav>
 
 <div id="avatar"></div>
+
+<div id="textbox"> 
+	<p> Hello there! </p>
+	<p> I'm <b>Clemens Schmid</b>, an <br>
+			archaeologist with a focus on <br> 
+			computational applications, digital data <br>
+			analysis, modelling and simulation.	This is my <br> 
+			website. 
+	
+	<p> I try to keep track of my academic career, talks and papers in my 
+			<a href="https://hcommons.org/members/nevrome/">Humanities Commons</a> profile
+			and via <a href="https://orcid.org/0000-0003-3448-5715">ORCID</a>.
+	</p>
+	<p> Beyond that I'm working on some scientific open source software development projects 
+			mostly in R and C++. All of them are on github. Some on
+			<a href="https://github.com/nevrome">my personal profile</a>, some
+			on the organisational profile of the working group
+			<a href="https://github.com/ISAAKiel">ISAAK</a>.
+	</p>
+
+	<p> The best way to contact me is via E-mail: <a href=\"&#x6d;&#x61;&#x69;&#x6c;&#x74;&#111;&#x3a;&#99;&#x6c;&#x65;&#109;&#101;&#x6e;&#x73;&#x40;&#x6e;&#101;&#x76;&#x72;&#x6f;&#109;&#101;&#46;&#x64;&#101;\">&#x63;&#x6c;&#101;&#109;&#101;&#x6e;&#x73;&#x40;&#x6e;&#101;&#118;&#x72;&#111;&#x6d;&#x65;&#46;&#x64;&#101;</a>.
+		  I'm also on <a href="https://twitter.com/nevromecs">twitter</a> and I love
+			testing the latest messenger apps. I'm currently living in 
+			<a href="https://www.google.com/maps/place/Mainz/">Mainz (Germany)</a> 
+			if you want to meet me in person.
+	</p>
+
+</div>
+
 <div id="thispage"> 
 	<a href="https://codepen.io/bennettfeely/pen/qRJOZJ">
 		@Bennett Feely: Thank you for the template!
@@ -360,6 +403,10 @@ toggle = document.querySelectorAll(".toggle")[0];
 nav = document.querySelectorAll("nav")[0];
 toggle_open_text = 'Clemens Schmid';
 toggle_close_text = 'Clemens Schmid';
+
+setTimeout(function () {
+  nav.classList.toggle('open');
+}, 500);
 
 toggle.addEventListener('click', function() {
 	nav.classList.toggle('open');
