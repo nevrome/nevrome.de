@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Clemens' blog - Editing a pull request branch created from a fork</title>
+        <link rel="stylesheet" href="../css/default.css" />
+        <link rel="stylesheet" href="../css/syntax.css" />
+    </head>
+    <body>
+        <header>
+            <div class="logo">
+                <a href="https://orcid.org/0000-0003-3448-5715" aria-label="View ORCID record">
+                    <img src="../images/ORCID-iD_icon_BW_16x16.png" alt="ORCID iD" />
+                    0000-0003-3448-5715 ← Clemens
+                </a>
+            </div>
+            
+            <nav>
+                <a href="../">Other blog posts</a>
+                <a href="https://github.com/nevrome/nevrome.de">GitHub</a>
+                <!--
+                <a href="/about.html">About</a>
+                <a href="/contact.html">Contact</a>
+                <a href="/archive.html">Archive</a>
+                -->
+            </nav>
+        </header>
+
+        <main role="main">
+            <h1>Editing a pull request branch created from a fork</h1>
+            <article>
+    <section class="header">
+        Posted
+        
+            originally <a href="https://blog.poseidon-adna.org/posts/archive_editing_git.html">here</a>
+        
+        on February 21, 2025
+        
+            by Clemens Schmid
+        
+    </section>
+    <section>
+        <p>At the time of writing, the <a href="https://github.com/poseidon-framework/community-archive">Poseidon community archive</a> has 14 open pull requests – most of which were opened by various community members to add new packages to the archive. What certainly is a pleasant development, because it indicates that the archive gets adopted, also comes with technical and administrative challenges. As an editor for the archive I recently had to step up my Git skills to address a particular issue I was facing.</p>
+<p>Already multiple times I found myself in the situation that I needed to edit a submission pull request before merging. This arose for example, when a package author prepared a package almost perfectly, but I still wanted to apply some additional minor changes before merging. Or an author or reviewer had struggled with Git, manoeuvred themselves into a predicament, and needed my help to untangle the knot without <a href="https://xkcd.com/1597">starting from scratch</a>. So here is what I came up with to allow me to do that efficiently.</p>
+<h2 id="workflow">Workflow</h2>
+<p>GitHub’s documentation includes a helpful tutorial how to <a href="https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/committing-changes-to-a-pull-request-branch-created-from-a-fork">commit changes to a pull request branch created from a fork</a>. It already covers the basic workflow how to edit a fork. The article highlights a number of conditions for this to be possible:</p>
+<blockquote>
+<p>You can only make commits on pull request branches that:</p>
+<ul>
+<li>Are opened in a repository that you have push access to and that were created from a fork of that repository</li>
+<li>Are on a user-owned fork</li>
+<li>Have permission granted from the pull request creator</li>
+<li>Don’t have branch restrictions that will prevent you from committing</li>
+</ul>
+</blockquote>
+<p>All of these are met in my case. But two additional challenges complicate the matter: i) the community-archive uses Git LFS for the large data files, and ii) I need to do this so frequently, that cloning every fork feels unnecessarily cumbersome. The following workflow considers this special situation.</p>
+<h3 id="sec-clone">1. Clone the fork repository</h3>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="va">GIT_LFS_SKIP_SMUDGE</span><span class="op">=</span>1 <span class="fu">git</span> clone git@github.com:USERNAME/FORK-OF-THE-REPOSITORY.git</span></code></pre></div>
+<p>Note that this workflow assumes that you have installed and configured Git LFS on your system. Cloning the repo with the <code>GIT_LFS_SKIP_SMUDGE</code> environment variable prevents downloading the LFS-tracked files despite Git LFS being enabled. This saves bandwidth and costs for us on GitHub.</p>
+<h3 id="if-necessary-switch-to-the-pull-request-branch">2. (if necessary) Switch to the pull request branch</h3>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> switch PR-BRANCH</span></code></pre></div>
+<p>This is only necessary, if the PR branch is not the main/master branch.</p>
+<h3 id="if-necessary-download-individual-lfs-tracked-files">3. (if necessary) Download individual LFS-tracked files</h3>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> lfs pull <span class="at">--include</span> <span class="st">&quot;PATH-TO-FILE&quot;</span></span></code></pre></div>
+<p>To validate a package completely it can be necessary to also access the genotype data. But because we cloned above with <code>GIT_LFS_SKIP_SMUDGE=1</code>, this data is not in our clone now. Fortunately we can selectively download it. <code>PATH-TO-FILE</code> can also include wildcards.</p>
+<h3 id="edit-the-files-as-desired">4. Edit the files as desired</h3>
+<p>Remember to commit the changes.</p>
+<h3 id="push-the-changes">5. Push the changes</h3>
+<p>This should work with <code>git push</code>. But yet again, Git LFS complicates things, raising the following error message:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode txt"><code class="sourceCode default"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>error: Authentication error: Authentication required: You must have push access to verify locks</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>error: failed to push some refs to 'github.com:USERNAME/FORK-OF-THE-REPOSITORY.git'</span></code></pre></div>
+<p>This is caused by a limitation of GitHub’s Git LFS implementation. A long thread here discusses the issue: <a href="https://github.com/git-lfs/git-lfs/issues/2291#issuecomment-305887405">Authentication required : You must have push access to verify locks error.</a> Multiple solutions are suggested there. One reliable workaround is to <a href="https://github.com/git-lfs/git-lfs/issues/2291#issuecomment-305887405">delete the git hook <code>.git/hooks/pre-push</code></a>.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span> .git/hooks/pre-push</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push</span></code></pre></div>
+<p>This resolved the issue for me – specifically because I never had to edit any of the genotype data files when working on a PR fork. I don’t know how this hack affects the handling of LFS-tracked files.</p>
+<h3 id="optional-moving-to-another-fork-in-the-same-clone">6. (optional) Moving to another fork in the same clone</h3>
+<p>If the changes in a fork A are already merged into the master branch of the main archive repository, then a little trick allows to switch to another fork B in the same clone.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> remote <span class="at">-v</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> remote set-url origin git@github.com:poseidon-framework/community-archive.git</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> switch master</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> pull</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> remote set-url origin git@github.com:USERNAME/FORK-OF-THE-NEXT-REPOSITORY.git</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> pull</span></code></pre></div>
+<p>We set the remote URL to the main repository, switch to the master branch, and pull. The commits from A are already there, so we have a clean state again. From here we can set a new remote URL for a fork B and pull. This effectively saves us from creating a fresh clone (as described in <span class="citation" data-cites="sec-clone">@sec-clone</span>).</p>
+    </section>
+</article>
+
+        </main>
+
+        <footer>
+            Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </footer>
+    </body>
+</html>

@@ -52,7 +52,7 @@ basic setup.</p>
 <p>Since version 0.4 it became more simple to create custom progress bars. In this new
 article we will show how to do this. Our final example displays a progress bar which
 provides an estimation of the remaining time (ETA) to finish a computation.</p>
-<h3 id="a-minimal-example">A minimal example</h3>
+<h2 id="a-minimal-example">A minimal example</h2>
 <p>Imagine you added a progress bar with RcppProgress to your function
 <code>long_computation()</code> following the example from the first article mentioned above.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode numberSource cpp numberLines"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1"></a><span class="co">// [[Rcpp::depends(RcppProgress)]]</span></span>
@@ -160,7 +160,7 @@ called. The result looks like this:</p>
 call to <code>increment()</code> out of the second level and into the first level loop to keep
 the amount of console output at bay. <code>update()</code> also checks if the display is <code>_finalized</code>.
 <code>end_display</code> triggers the finalization.</p>
-<h3 id="remaining-time-estimation">Remaining time estimation</h3>
+<h2 id="remaining-time-estimation">Remaining time estimation</h2>
 <p>Based on the minimal setup above, you can implement more sophisticated
 progress bars. Here’s an example of one that looks exactly like the default
 <code>SimpleProgressBar</code>, but adds an estimation of the remaining time for the process to finish.

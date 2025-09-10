@@ -48,10 +48,10 @@
 <p><a href="https://github.com/zatonovo/lambda.r">lambda.r</a> (here v.1.2.4) is an R package that provides syntax extensions to write functional, Haskell-like code in R. It implements an astonishing number of features including type and function definition, pattern matching, guard statements and even monads! True functional programming available at your fingertips in R. All while maintaining a surprisingly Haskell-like syntax and incorporating powerful bonus features from R. Even a custom debugging system is part of the package.</p>
 <p>The author Brian Lee Yung Rowe did an incredible job and also maintained the package over a commendable time span – the first commit on Github is from 2012 and the last change was pushed 2019.</p>
 <p>Of course the package has some known limitations and rough edges. In my opinion it’s an extremely clever proof of concept and I enjoyed very much playing with it, but I’m not sure if I would recommend it for use in production. I’ll leave that to you and instead show you what I managed to build with it.</p>
-<h3 id="the-experiment">The experiment</h3>
+<h2 id="the-experiment">The experiment</h2>
 <p>Recently I wanted to implement a simple but specific logic in a bioinformatics context — so this is a real world example. But it would be tedious to explain the background, so I’ll instead replace the entities with something more digestible: Apples.</p>
 <p>Let’s say we have two sets of apple varieties and then a number of other fruit variety sets (varieties of pears, plums, strawberries, …). The first apple collection is large and covers all sorts of types: Ambrosia, Granny Smith, Red Delicious, Jonagold, Rome, Honeycrisp and many more. The second apple collection is much smaller, but a strict subset of the first one. It only includes the three varieties Granny Smith, Red Delicious and Honeycrisp. We don’t really care about the other fruits.</p>
-<h4 id="merging-fruit-variety-sets-in-haskell">Merging fruit variety sets in Haskell</h4>
+<h3 id="merging-fruit-variety-sets-in-haskell">Merging fruit variety sets in Haskell</h3>
 <p>How could we model these sets in Haskell? We don’t need to consider the individual varieties here. Only the variety collections. So we could create the type <code>FruitSet</code> with three data constructors for the three different relevant sets. For the sake of simplicity let’s shorten their names to</p>
 <ul>
 <li>LAS = Large Apple Set</li>
@@ -102,7 +102,7 @@
 <span id="cb4-9"><a href="#cb4-9"></a>fSMergeList [<span class="dt">LAS</span>, <span class="dt">LAS</span>, <span class="dt">OFS</span>] <span class="dt">False</span></span>
 <span id="cb4-10"><a href="#cb4-10"></a><span class="co">-- OFS</span></span></code></pre></div>
 <p>Works like a charm! Let’s compare that with lamda.r now.</p>
-<h3 id="the-lambda.r-implementation">The lambda.r implementation</h3>
+<h2 id="the-lambda.r-implementation">The lambda.r implementation</h2>
 <p>lambda.r provides some functions, mostly clever infix operators, to enable a Haskell-like logic and syntax in R. To access them we have to install and load the package first.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode numberSource r numberLines"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1"></a><span class="fu">install.packages</span>(“lambda.r”)</span>
 <span id="cb5-2"><a href="#cb5-2"></a><span class="fu">library</span>(lambda.r)</span></code></pre></div>
@@ -177,7 +177,7 @@ attr(,&quot;class&quot;)
 <span id="cb15-9"><a href="#cb15-9"></a><span class="fu">fsMergeList</span>(<span class="fu">FruitSetList</span>(<span class="fu">FruitSet</span>(<span class="st">&quot;LAS&quot;</span>), <span class="fu">FruitSet</span>(<span class="st">&quot;LAS&quot;</span>), <span class="fu">FruitSet</span>(<span class="st">&quot;OFS&quot;</span>)), <span class="cn">FALSE</span>)</span>
 <span id="cb15-10"><a href="#cb15-10"></a><span class="co"># [1] &quot;OFS&quot;</span></span></code></pre></div>
 <p>Excellent! The Syntax is more verbose as the one in Haskell, but the results are the same.</p>
-<h3 id="recap">Recap</h3>
+<h2 id="recap">Recap</h2>
 <ul>
 <li>Haskell and R are both versatile languages with large communities that regularly suggest and discuss new abstractions. Haskell is a real innovation machine and carries many functional programming concepts into other languages.</li>
 <li>lambda.r is a syntax extension to make some of the power of Haskell (or similar functional programming languages) available in R.</li>

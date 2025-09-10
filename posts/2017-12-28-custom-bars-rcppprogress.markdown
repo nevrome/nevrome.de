@@ -16,7 +16,7 @@ Since version 0.4 it became more simple to create custom progress bars. In this 
 article we will show how to do this. Our final example displays a progress bar which 
 provides an estimation of the remaining time (ETA) to finish a computation.
 
-### A minimal example
+## A minimal example
 
 Imagine you added a progress bar with RcppProgress to your function
 `long_computation()` following the example from the first article mentioned above.
@@ -148,7 +148,7 @@ call to `increment()` out of the second level and into the first level loop to k
 the amount of console output at bay. `update()` also checks if the display is `_finalized`.
 `end_display` triggers the finalization.  
 
-### Remaining time estimation
+## Remaining time estimation
 
 Based on the minimal setup above, you can implement more sophisticated 
 progress bars. Here's an example of one that looks exactly like the default 
