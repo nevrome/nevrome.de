@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Clemens' blog - Haskell in R? An experiment with the R package lambda.r</title>
+        <link rel="stylesheet" href="../css/default.css" />
+        <link rel="stylesheet" href="../css/syntax.css" />
+    </head>
+    <body>
+        <header>
+            <div class="logo">
+                <a href="https://orcid.org/0000-0003-3448-5715" aria-label="View ORCID record">
+                    <img src="../images/ORCID-iD_icon_BW_16x16.png" alt="ORCID iD" />
+                    0000-0003-3448-5715 ← Clemens
+                </a>
+            </div>
+            
+            <nav>
+                <a href="../">Other blog posts</a>
+                <!--
+                <a href="/about.html">About</a>
+                <a href="/contact.html">Contact</a>
+                <a href="/archive.html">Archive</a>
+                -->
+            </nav>
+        </header>
+
+        <main role="main">
+            <h1>Haskell in R? An experiment with the R package lambda.r</h1>
+            <article>
+    <section class="header">
+        Posted
+        
+            originally <a href="https://nevrome.medium.com/haskell-in-r-an-experiment-with-the-r-package-lambda-r-78f21c0f9fe6">here</a>
+        
+        on May  6, 2021
+        
+            by Clemens Schmid
+        
+    </section>
+    <section>
+        <p><em>TL;DR: Feel free to directly jump to The lambda.r implementation if you only want to see that. The full code is posted at the end of the article.</em></p>
+<p>Haskell and R are quite different programming languages. One is purely functional, statically typed and prominently features some of the most obscure abstractions in Computer Science. The other one lives at a particularly weird spot at the crossroad of the object-oriented, imperative and functional paradigms, has a ductile and dynamic type system and is optimized for the pragmatic needs of data analysis.</p>
+<p>But still these two languages share some interesting features. For example both can be run interactively in an interpreter environment. And both consider functions first-class citizens – thus offering higher-order functions – and allow the definition of custom infix operators. And that’s why something like lambda.r is possible in the first place.</p>
+<p><a href="https://github.com/zatonovo/lambda.r">lambda.r</a> (here v.1.2.4) is an R package that provides syntax extensions to write functional, Haskell-like code in R. It implements an astonishing number of features including type and function definition, pattern matching, guard statements and even monads! True functional programming available at your fingertips in R. All while maintaining a surprisingly Haskell-like syntax and incorporating powerful bonus features from R. Even a custom debugging system is part of the package.</p>
+<p>The author Brian Lee Yung Rowe did an incredible job and also maintained the package over a commendable time span – the first commit on Github is from 2012 and the last change was pushed 2019.</p>
+<p>Of course the package has some known limitations and rough edges. In my opinion it’s an extremely clever proof of concept and I enjoyed very much playing with it, but I’m not sure if I would recommend it for use in production. I’ll leave that to you and instead show you what I managed to build with it.</p>
+<h3 id="the-experiment">The experiment</h3>
+<p>Recently I wanted to implement a simple but specific logic in a bioinformatics context — so this is a real world example. But it would be tedious to explain the background, so I’ll instead replace the entities with something more digestible: Apples.</p>
+<p>Let’s say we have two sets of apple varieties and then a number of other fruit variety sets (varieties of pears, plums, strawberries, …). The first apple collection is large and covers all sorts of types: Ambrosia, Granny Smith, Red Delicious, Jonagold, Rome, Honeycrisp and many more. The second apple collection is much smaller, but a strict subset of the first one. It only includes the three varieties Granny Smith, Red Delicious and Honeycrisp. We don’t really care about the other fruits.</p>
+<h4 id="merging-fruit-variety-sets-in-haskell">Merging fruit variety sets in Haskell</h4>
+<p>How could we model these sets in Haskell? We don’t need to consider the individual varieties here. Only the variety collections. So we could create the type <code>FruitSet</code> with three data constructors for the three different relevant sets. For the sake of simplicity let’s shorten their names to</p>
+<ul>
+<li>LAS = Large Apple Set</li>
+<li>SAS = Small Apple Subset</li>
+<li>OFS = Other Fruit Set</li>
+</ul>
+<div class="sourceCode" id="cb1"><pre class="sourceCode numberSource haskell numberLines"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1"></a><span class="kw">data</span> <span class="dt">FruitSet</span> <span class="ot">=</span></span>
+<span id="cb1-2"><a href="#cb1-2"></a>    <span class="dt">LAS</span></span>
+<span id="cb1-3"><a href="#cb1-3"></a>  <span class="op">|</span> <span class="dt">SAS</span></span>
+<span id="cb1-4"><a href="#cb1-4"></a>  <span class="op">|</span> <span class="dt">OFS</span></span>
+<span id="cb1-5"><a href="#cb1-5"></a>  <span class="kw">deriving</span> (<span class="dt">Eq</span>, <span class="dt">Show</span>)</span></code></pre></div>
+<p>Now about the issue we have to solve for these sets: We need a function that merges a list of fruit sets according to a very specific logic into only one output fruit set. This has to adhere to the following pair-wise (and undirected) merging rules:</p>
+<ul>
+<li>If we merge two identical sets then the output should just be that set. That makes sense: Consider for example two Large Apple Sets. All the Ambrosia, Rome, Red Delicious and so forth apple varieties are present in both of the input sets in a pair-wise comparison.</li>
+<li>If we merge any set with one of the Other Fruit Sets then the output should always be an Other Fruit Set. Of course: we have a weird mixture of species and fruit varieties afterwards.</li>
+</ul>
+<p>For the final two rules, we also have to consider two different kind of merges: A union merge and an intersect merge.</p>
+<ul>
+<li>If we merge a Large Apple Set and a Small Apple Subset with a union merge, then a Large Apple Set should be returned. That makes sense: The varieties in the small subset — Granny Smith, Red Delicious and Honeycrisp — are already part the large superset.</li>
+<li>If we merge a Large Apple Set and a Small Apple Subset with an intersect merge, then we should get a Small Apple Subset. That just follows the same logic as in the previous rule.</li>
+</ul>
+<p>I think these rules are an excellent application for pattern matching in Haskell. We could implement them in a function like this:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode numberSource haskell numberLines"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1"></a><span class="ot">fSMerge ::</span> <span class="dt">FruitSet</span> <span class="ot">-&gt;</span> <span class="dt">FruitSet</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> <span class="dt">FruitSet</span></span>
+<span id="cb2-2"><a href="#cb2-2"></a>fSMerge <span class="dt">LAS</span> <span class="dt">LAS</span> _     <span class="ot">=</span> <span class="dt">LAS</span></span>
+<span id="cb2-3"><a href="#cb2-3"></a>fSMerge <span class="dt">SAS</span> <span class="dt">SAS</span> _     <span class="ot">=</span> <span class="dt">SAS</span></span>
+<span id="cb2-4"><a href="#cb2-4"></a>fSMerge <span class="dt">OFS</span> _   _     <span class="ot">=</span> <span class="dt">OFS</span></span>
+<span id="cb2-5"><a href="#cb2-5"></a>fSMerge _   <span class="dt">OFS</span> _     <span class="ot">=</span> <span class="dt">OFS</span></span>
+<span id="cb2-6"><a href="#cb2-6"></a>fSMerge <span class="dt">LAS</span> <span class="dt">SAS</span> <span class="dt">True</span>  <span class="ot">=</span> <span class="dt">SAS</span></span>
+<span id="cb2-7"><a href="#cb2-7"></a>fSMerge <span class="dt">SAS</span> <span class="dt">LAS</span> <span class="dt">True</span>  <span class="ot">=</span> <span class="dt">SAS</span></span>
+<span id="cb2-8"><a href="#cb2-8"></a>fSMerge <span class="dt">LAS</span> <span class="dt">SAS</span> <span class="dt">False</span> <span class="ot">=</span> <span class="dt">LAS</span></span>
+<span id="cb2-9"><a href="#cb2-9"></a>fSMerge <span class="dt">SAS</span> <span class="dt">LAS</span> <span class="dt">False</span> <span class="ot">=</span> <span class="dt">LAS</span></span></code></pre></div>
+<p>Even if you’re not familiar with Haskell you may appreciate how the different pair-wise comparison cases are expressed here. The function takes two <code>FruitSet</code>s and a logical to distinguish union (<code>False</code>) and intersect (<code>True</code>) merges. For many of these rules it does not even matter which kind of merge is applied. Here we can replace the pattern with the wildcard symbol “<code>_</code>”.</p>
+<p>Now that we have these rules, we can also implement the function that applies them to an arbitrary list of <code>FruitSet</code>s to determine the appropriate superset.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode numberSource haskell numberLines"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1"></a><span class="ot">fSMergeList ::</span> [<span class="dt">FruitSet</span>] <span class="ot">-&gt;</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> <span class="dt">FruitSet</span></span>
+<span id="cb3-2"><a href="#cb3-2"></a>fSMergeList (x<span class="op">:</span>xs) intersect <span class="ot">=</span> </span>
+<span id="cb3-3"><a href="#cb3-3"></a>  <span class="fu">foldr</span> (\a b <span class="ot">-&gt;</span> fSMerge a b intersect) x xs</span></code></pre></div>
+<p>It uses a fold to combine the list elements into one. <a href="https://wiki.haskell.org/Fold">Folds</a> are operations that look at two elements of a list, apply some binary function to them, take the result and apply the same function again to that and a new list element. Just until only one result remains and the list is gone. Folds usually need a starting value that serves also as an “accumulator” to track the list-condensing result along the fold’s way through the list.</p>
+<p>Here I used Haskell’s clever pattern matching on lists (<code>x:xs</code>) to separate the input list’s head and tail. That makes it straight forward to set the head element as the starting value for the fold. We will see below that lambda.r is less elegant here.</p>
+<p>Finally we can test our code:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode numberSource haskell numberLines"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1"></a>fSMergeList [<span class="dt">LAS</span>] <span class="dt">True</span></span>
+<span id="cb4-2"><a href="#cb4-2"></a><span class="co">-- LAS</span></span>
+<span id="cb4-3"><a href="#cb4-3"></a>fSMergeList [<span class="dt">LAS</span>, <span class="dt">LAS</span>] <span class="dt">True</span></span>
+<span id="cb4-4"><a href="#cb4-4"></a><span class="co">-- LAS</span></span>
+<span id="cb4-5"><a href="#cb4-5"></a>fSMergeList [<span class="dt">LAS</span>, <span class="dt">LAS</span>, <span class="dt">SAS</span>] <span class="dt">True</span></span>
+<span id="cb4-6"><a href="#cb4-6"></a><span class="co">-- SAS</span></span>
+<span id="cb4-7"><a href="#cb4-7"></a>fSMergeList [<span class="dt">LAS</span>, <span class="dt">LAS</span>, <span class="dt">SAS</span>] <span class="dt">False</span></span>
+<span id="cb4-8"><a href="#cb4-8"></a><span class="co">-- LAS</span></span>
+<span id="cb4-9"><a href="#cb4-9"></a>fSMergeList [<span class="dt">LAS</span>, <span class="dt">LAS</span>, <span class="dt">OFS</span>] <span class="dt">False</span></span>
+<span id="cb4-10"><a href="#cb4-10"></a><span class="co">-- OFS</span></span></code></pre></div>
+<p>Works like a charm! Let’s compare that with lamda.r now.</p>
+<h3 id="the-lambda.r-implementation">The lambda.r implementation</h3>
+<p>lambda.r provides some functions, mostly clever infix operators, to enable a Haskell-like logic and syntax in R. To access them we have to install and load the package first.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode numberSource r numberLines"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1"></a><span class="fu">install.packages</span>(“lambda.r”)</span>
+<span id="cb5-2"><a href="#cb5-2"></a><span class="fu">library</span>(lambda.r)</span></code></pre></div>
+<p>Just as in the Haskell code above we have to find a way to represent fruit sets. With lambda.r, types are defined by their constructor functions. Each function has a name and input arguments separated from a return value or operation with the <code>%as%</code> infix operator.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode numberSource r numberLines"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1"></a><span class="fu">FruitSet</span>(<span class="st">&quot;LAS&quot;</span>) <span class="sc">%as%</span> <span class="st">&quot;LAS&quot;</span></span>
+<span id="cb6-2"><a href="#cb6-2"></a><span class="fu">FruitSet</span>(<span class="st">&quot;SAS&quot;</span>) <span class="sc">%as%</span> <span class="st">&quot;SAS&quot;</span></span>
+<span id="cb6-3"><a href="#cb6-3"></a><span class="fu">FruitSet</span>(<span class="st">&quot;OFS&quot;</span>) <span class="sc">%as%</span> <span class="st">&quot;OFS&quot;</span></span></code></pre></div>
+<p>A distinction of type and data constructor as in Haskell does not exist to my knowledge. Also no nullary data constructor (“constants”). So I decided to be creative and use pattern matching on strings to simulate a data type for different fruit sets. lambda.r understands this syntax perfectly fine and prints the resulting type as follows:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode numberSource r numberLines"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1"></a><span class="sc">&lt;</span>type constructor<span class="sc">&gt;</span></span></code></pre></div>
+<pre><code>[[1]]
+FruitSet(&quot;LAS&quot;) %:=% ...
+[[2]]
+FruitSet(&quot;SAS&quot;) %:=% ...
+[[3]]
+FruitSet(&quot;OFS&quot;) %:=% ...</code></pre>
+<p>With that data type we can define the pair-wise merging logic as laid out above.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode numberSource r numberLines"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1"></a><span class="fu">fsMerge</span>(a,b,intersect) <span class="sc">%::%</span> FruitSet <span class="sc">:</span> FruitSet <span class="sc">:</span> logical <span class="sc">:</span> FruitSet</span>
+<span id="cb9-2"><a href="#cb9-2"></a><span class="fu">fsMerge</span>(<span class="st">&quot;LAS&quot;</span>, <span class="st">&quot;LAS&quot;</span>, intersect) <span class="sc">%as%</span> <span class="fu">FruitSet</span>(<span class="st">&quot;LAS&quot;</span>)</span>
+<span id="cb9-3"><a href="#cb9-3"></a><span class="fu">fsMerge</span>(<span class="st">&quot;SAS&quot;</span>, <span class="st">&quot;SAS&quot;</span>, intersect) <span class="sc">%as%</span> <span class="fu">FruitSet</span>(<span class="st">&quot;SAS&quot;</span>)</span>
+<span id="cb9-4"><a href="#cb9-4"></a><span class="fu">fsMerge</span>(<span class="st">&quot;OFS&quot;</span>, b,     intersect) <span class="sc">%as%</span> <span class="fu">FruitSet</span>(<span class="st">&quot;OFS&quot;</span>)</span>
+<span id="cb9-5"><a href="#cb9-5"></a><span class="fu">fsMerge</span>(a,     <span class="st">&quot;OFS&quot;</span>, intersect) <span class="sc">%as%</span> <span class="fu">FruitSet</span>(<span class="st">&quot;OFS&quot;</span>)</span>
+<span id="cb9-6"><a href="#cb9-6"></a><span class="fu">fsMerge</span>(<span class="st">&quot;LAS&quot;</span>, <span class="st">&quot;SAS&quot;</span>, <span class="cn">TRUE</span>     ) <span class="sc">%as%</span> <span class="fu">FruitSet</span>(<span class="st">&quot;SAS&quot;</span>)</span>
+<span id="cb9-7"><a href="#cb9-7"></a><span class="fu">fsMerge</span>(<span class="st">&quot;SAS&quot;</span>, <span class="st">&quot;LAS&quot;</span>, <span class="cn">TRUE</span>     ) <span class="sc">%as%</span> <span class="fu">FruitSet</span>(<span class="st">&quot;SAS&quot;</span>)</span>
+<span id="cb9-8"><a href="#cb9-8"></a><span class="fu">fsMerge</span>(<span class="st">&quot;LAS&quot;</span>, <span class="st">&quot;SAS&quot;</span>, <span class="cn">FALSE</span>    ) <span class="sc">%as%</span> <span class="fu">FruitSet</span>(<span class="st">&quot;LAS&quot;</span>)</span>
+<span id="cb9-9"><a href="#cb9-9"></a><span class="fu">fsMerge</span>(<span class="st">&quot;SAS&quot;</span>, <span class="st">&quot;LAS&quot;</span>, <span class="cn">FALSE</span>    ) <span class="sc">%as%</span> <span class="fu">FruitSet</span>(<span class="st">&quot;LAS&quot;</span>)</span></code></pre></div>
+<p>Note how extremely similar this syntax is to Haskell. The type interface definition follows exactly the same principle, short of some minor deviations when <code>::</code> became <code>%::%</code> in R and <code>-&gt;</code> is replaced by <code>:</code>. R has <a href="https://stackoverflow.com/questions/24697248/is-it-possible-to-define-operator-without/24698311#24698311">some limitations</a> regarding infix operators.</p>
+<p><strong>One key take-away is, that this function will not run with input that is not exactly as specified. lambda.r thus introduces a static type system into R.</strong></p>
+<p>The pattern matching in the function definition is just as in Haskell, except of course for a number of syntactic details like the parentheses, commas, string-based values and lack of explicit wildcards. It’s another language after all!</p>
+<p>With this function implemented, we only lack the last component: The function to apply the pair-wise comparisons with a fold on a list of <code>FruitSet</code>s. And here things start to become a bit more tricky, unfortunately. Let’s start with the result:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode numberSource r numberLines"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1"></a><span class="fu">fsMergeList</span>(xs, intersect) <span class="sc">%::%</span> FruitSetList <span class="sc">:</span> logical <span class="sc">:</span> FruitSet</span>
+<span id="cb10-2"><a href="#cb10-2"></a><span class="fu">fsMergeList</span>(xs, intersect) <span class="sc">%as%</span> </span>
+<span id="cb10-3"><a href="#cb10-3"></a>  <span class="fu">Reduce</span>(</span>
+<span id="cb10-4"><a href="#cb10-4"></a>    <span class="cf">function</span>(a, b) { <span class="fu">fsMerge</span>(a, b, intersect) }, </span>
+<span id="cb10-5"><a href="#cb10-5"></a>    xs[<span class="fu">tail</span>(<span class="fu">seq_along</span>(xs), <span class="at">n =</span> <span class="sc">-</span><span class="dv">1</span>)], </span>
+<span id="cb10-6"><a href="#cb10-6"></a>    <span class="at">init =</span> xs[[<span class="dv">1</span>]]</span>
+<span id="cb10-7"><a href="#cb10-7"></a>  )</span></code></pre></div>
+<p>The general structure is again very Haskell-like. For the folding we use the <code>Reduce</code> function from the R base package (which is something like the <a href="https://hackage.haskell.org/package/base-4.15.0.0/docs/Prelude.html">Prelude</a> in Haskell). One major difference between lambda.r and Haskell is though, that lambda.r lacks a good default way to handle lists. Maybe I just missed the relevant documentation or overlooked something else, but I struggled a bit with that.</p>
+<p>In the end I decided to come up with my own list type.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode numberSource r numberLines"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1"></a><span class="fu">FruitSetList</span>(…) <span class="sc">%::%</span> FruitSet… <span class="sc">:</span> FruitSetList</span>
+<span id="cb11-2"><a href="#cb11-2"></a><span class="fu">FruitSetList</span>(…) <span class="sc">%as%</span> <span class="fu">asFruitSetList</span>(<span class="fu">list</span>(…))<span class="fu">asFruitSetList</span>(xs) <span class="sc">%::%</span> list <span class="sc">:</span> FruitSetList</span>
+<span id="cb11-3"><a href="#cb11-3"></a><span class="fu">asFruitSetList</span>(xs) <span class="sc">%as%</span> { </span>
+<span id="cb11-4"><a href="#cb11-4"></a> <span class="fu">class</span>(xs) <span class="ot">&lt;-</span> <span class="fu">c</span>(“FruitSetList”)</span>
+<span id="cb11-5"><a href="#cb11-5"></a> xs</span>
+<span id="cb11-6"><a href="#cb11-6"></a>}</span></code></pre></div>
+<p>This constructor makes use of the <a href="https://github.com/zatonovo/lambda.r#the-ellipsis-type">Ellipsis type</a> “<code>...</code>”, a weird feature of R, well integrated into lambda.r: a single input argument that can represent a set of multiple arguments. In lambda.r it can be combined with a type constraint to make sure that the function takes an arbitrary amount of arguments, but only of this type. So here of type FruitSet.</p>
+<p>That allows for a pretty cool constructor syntax:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode numberSource r numberLines"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1"></a><span class="fu">FruitSetList</span>(<span class="fu">FruitSet</span>(“LAS”), <span class="fu">FruitSet</span>(“SAS”), <span class="fu">FruitSet</span>(“OFS”))[[<span class="dv">1</span>]]</span></code></pre></div>
+<pre><code>[1] &quot;LAS&quot;
+attr(,&quot;class&quot;)
+[1] &quot;FruitSet&quot;  &quot;character&quot;
+[[2]]
+[1] &quot;SAS&quot;
+attr(,&quot;class&quot;)
+[1] &quot;FruitSet&quot;  &quot;character&quot;
+[[3]]
+[1] &quot;OFS&quot;
+attr(,&quot;class&quot;)
+[1] &quot;FruitSet&quot;  &quot;character&quot;attr(,&quot;class&quot;)
+[1] &quot;FruitSetList&quot;</code></pre>
+<p>Unforturnately I found no direct way to catch the ellipsis and make it a <code>FruitSetList</code>. With <code>list(...)</code> I could indeed transform it to a list, but that’s only half the job. I resorted to the rather ugly <code>asFruitSetList</code> that “manually” adds the “FruitSetList” label to the class attribute of the output object. That works because lambda.r utilizes <a href="http://adv-r.had.co.nz/S3.html">R S3 classes</a> for its magic.</p>
+<p>With that out of the way there was still one issue to address. I could not use Haskell’s pattern matching on lists to separate the head and tail elements for the <code>Reduce</code> input. It’s easy to get the first element of a list in R, but the tail requires some more advanced indexing:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode numberSource r numberLines"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1"></a>xs[<span class="fu">tail</span>(<span class="fu">seq_along</span>(xs), <span class="at">n =</span> <span class="sc">-</span><span class="dv">1</span>)]</span></code></pre></div>
+<p>All issues should be solved now. It’s time for a final test run of our code:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode numberSource r numberLines"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1"></a><span class="fu">fsMergeList</span>(<span class="fu">FruitSetList</span>(<span class="fu">FruitSet</span>(<span class="st">&quot;LAS&quot;</span>)), <span class="cn">TRUE</span>)</span>
+<span id="cb15-2"><a href="#cb15-2"></a><span class="co"># [1] &quot;LAS&quot;</span></span>
+<span id="cb15-3"><a href="#cb15-3"></a><span class="fu">fsMergeList</span>(<span class="fu">FruitSetList</span>(<span class="fu">FruitSet</span>(<span class="st">&quot;LAS&quot;</span>), <span class="fu">FruitSet</span>(<span class="st">&quot;LAS&quot;</span>)), <span class="cn">TRUE</span>)</span>
+<span id="cb15-4"><a href="#cb15-4"></a><span class="co"># [1] &quot;LAS&quot;</span></span>
+<span id="cb15-5"><a href="#cb15-5"></a><span class="fu">fsMergeList</span>(<span class="fu">FruitSetList</span>(<span class="fu">FruitSet</span>(<span class="st">&quot;LAS&quot;</span>), <span class="fu">FruitSet</span>(<span class="st">&quot;LAS&quot;</span>), <span class="fu">FruitSet</span>(<span class="st">&quot;SAS&quot;</span>)), <span class="cn">TRUE</span>)</span>
+<span id="cb15-6"><a href="#cb15-6"></a><span class="co"># [1] &quot;SAS&quot;</span></span>
+<span id="cb15-7"><a href="#cb15-7"></a><span class="fu">fsMergeList</span>(<span class="fu">FruitSetList</span>(<span class="fu">FruitSet</span>(<span class="st">&quot;LAS&quot;</span>), <span class="fu">FruitSet</span>(<span class="st">&quot;LAS&quot;</span>), <span class="fu">FruitSet</span>(<span class="st">&quot;SAS&quot;</span>)), <span class="cn">FALSE</span>)</span>
+<span id="cb15-8"><a href="#cb15-8"></a><span class="co"># [1] &quot;LAS&quot;</span></span>
+<span id="cb15-9"><a href="#cb15-9"></a><span class="fu">fsMergeList</span>(<span class="fu">FruitSetList</span>(<span class="fu">FruitSet</span>(<span class="st">&quot;LAS&quot;</span>), <span class="fu">FruitSet</span>(<span class="st">&quot;LAS&quot;</span>), <span class="fu">FruitSet</span>(<span class="st">&quot;OFS&quot;</span>)), <span class="cn">FALSE</span>)</span>
+<span id="cb15-10"><a href="#cb15-10"></a><span class="co"># [1] &quot;OFS&quot;</span></span></code></pre></div>
+<p>Excellent! The Syntax is more verbose as the one in Haskell, but the results are the same.</p>
+<h3 id="recap">Recap</h3>
+<ul>
+<li>Haskell and R are both versatile languages with large communities that regularly suggest and discuss new abstractions. Haskell is a real innovation machine and carries many functional programming concepts into other languages.</li>
+<li>lambda.r is a syntax extension to make some of the power of Haskell (or similar functional programming languages) available in R.</li>
+<li>lambda.r works and is extremely fun to play with, but it’s pretty verbose and lacks (at least to my understanding) a good list implementation. I also suspect it not to be optimized for performance — probably quite the opposite.</li>
+</ul>
+<p>I personally would love to see some of the concepts demonstrated with lambda.r to find their way into regular, base R. Especially a way to switch on static typing! That could avoid a lot of unexpected behavior. R interfaces often feel flimsy and not as rock solid as comparable code in Haskell. The approach lambda.r took here – e.g. with the <a href="https://github.com/zatonovo/lambda.r#the-dont-care-type">Don’t-Care Type</a> <code>.</code>, which I did not introduce – could be a way to combine dynamic and static typing. Ideally we want more sturdy interfaces without sacrificing R’s great flexibility for rapid prototyping.</p>
+<p><em>Acknowledgements: I got some valuable feedback by my colleague James Fellows Yates (<span class="citation" data-cites="jfy133">@jfy133</span>) for this post.</em></p>
+<hr />
+<p>Haskell:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode numberSource haskell numberLines"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1"></a><span class="kw">data</span> <span class="dt">FruitSet</span> <span class="ot">=</span></span>
+<span id="cb16-2"><a href="#cb16-2"></a>        <span class="dt">LAS</span></span>
+<span id="cb16-3"><a href="#cb16-3"></a>    <span class="op">|</span>   <span class="dt">SAS</span></span>
+<span id="cb16-4"><a href="#cb16-4"></a>    <span class="op">|</span>   <span class="dt">OFS</span></span>
+<span id="cb16-5"><a href="#cb16-5"></a>    <span class="kw">deriving</span> (<span class="dt">Eq</span>, <span class="dt">Show</span>)</span>
+<span id="cb16-6"><a href="#cb16-6"></a></span>
+<span id="cb16-7"><a href="#cb16-7"></a><span class="ot">fSMergeList ::</span> [<span class="dt">FruitSet</span>] <span class="ot">-&gt;</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> <span class="dt">FruitSet</span></span>
+<span id="cb16-8"><a href="#cb16-8"></a>fSMergeList (x<span class="op">:</span>xs) intersect <span class="ot">=</span> <span class="fu">foldr</span> (\a b <span class="ot">-&gt;</span> fSMerge a b intersect) x xs</span>
+<span id="cb16-9"><a href="#cb16-9"></a></span>
+<span id="cb16-10"><a href="#cb16-10"></a><span class="ot">fSMerge ::</span> <span class="dt">FruitSet</span> <span class="ot">-&gt;</span> <span class="dt">FruitSet</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> <span class="dt">FruitSet</span></span>
+<span id="cb16-11"><a href="#cb16-11"></a>fSMerge <span class="dt">LAS</span> <span class="dt">LAS</span> _     <span class="ot">=</span> <span class="dt">LAS</span></span>
+<span id="cb16-12"><a href="#cb16-12"></a>fSMerge <span class="dt">SAS</span> <span class="dt">SAS</span> _     <span class="ot">=</span> <span class="dt">SAS</span></span>
+<span id="cb16-13"><a href="#cb16-13"></a>fSMerge <span class="dt">OFS</span> _   _     <span class="ot">=</span> <span class="dt">OFS</span></span>
+<span id="cb16-14"><a href="#cb16-14"></a>fSMerge _   <span class="dt">OFS</span> _     <span class="ot">=</span> <span class="dt">OFS</span></span>
+<span id="cb16-15"><a href="#cb16-15"></a>fSMerge <span class="dt">LAS</span> <span class="dt">SAS</span> <span class="dt">True</span>  <span class="ot">=</span> <span class="dt">SAS</span></span>
+<span id="cb16-16"><a href="#cb16-16"></a>fSMerge <span class="dt">SAS</span> <span class="dt">LAS</span> <span class="dt">True</span>  <span class="ot">=</span> <span class="dt">SAS</span></span>
+<span id="cb16-17"><a href="#cb16-17"></a>fSMerge <span class="dt">LAS</span> <span class="dt">SAS</span> <span class="dt">False</span> <span class="ot">=</span> <span class="dt">LAS</span></span>
+<span id="cb16-18"><a href="#cb16-18"></a>fSMerge <span class="dt">SAS</span> <span class="dt">LAS</span> <span class="dt">False</span> <span class="ot">=</span> <span class="dt">LAS</span></span></code></pre></div>
+<p>R:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode numberSource r numberLines"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1"></a><span class="fu">library</span>(lambda.r)</span>
+<span id="cb17-2"><a href="#cb17-2"></a></span>
+<span id="cb17-3"><a href="#cb17-3"></a><span class="fu">FruitSet</span>(<span class="st">&quot;LAS&quot;</span>) <span class="sc">%as%</span> <span class="st">&quot;LAS&quot;</span></span>
+<span id="cb17-4"><a href="#cb17-4"></a><span class="fu">FruitSet</span>(<span class="st">&quot;SAS&quot;</span>) <span class="sc">%as%</span> <span class="st">&quot;SAS&quot;</span></span>
+<span id="cb17-5"><a href="#cb17-5"></a><span class="fu">FruitSet</span>(<span class="st">&quot;OFS&quot;</span>) <span class="sc">%as%</span> <span class="st">&quot;OFS&quot;</span></span>
+<span id="cb17-6"><a href="#cb17-6"></a></span>
+<span id="cb17-7"><a href="#cb17-7"></a><span class="fu">FruitSetList</span>(...) <span class="sc">%::%</span> FruitSet... <span class="sc">:</span> FruitSetList</span>
+<span id="cb17-8"><a href="#cb17-8"></a><span class="fu">FruitSetList</span>(...) <span class="sc">%as%</span> <span class="fu">asFruitSetList</span>(<span class="fu">list</span>(...))</span>
+<span id="cb17-9"><a href="#cb17-9"></a></span>
+<span id="cb17-10"><a href="#cb17-10"></a><span class="fu">asFruitSetList</span>(xs) <span class="sc">%::%</span> list <span class="sc">:</span> FruitSetList</span>
+<span id="cb17-11"><a href="#cb17-11"></a><span class="fu">asFruitSetList</span>(xs) <span class="sc">%as%</span> { </span>
+<span id="cb17-12"><a href="#cb17-12"></a>  <span class="fu">class</span>(xs) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;FruitSetList&quot;</span>)</span>
+<span id="cb17-13"><a href="#cb17-13"></a>  xs</span>
+<span id="cb17-14"><a href="#cb17-14"></a>}</span>
+<span id="cb17-15"><a href="#cb17-15"></a></span>
+<span id="cb17-16"><a href="#cb17-16"></a><span class="fu">fsMerge</span>(a, b, intersect) <span class="sc">%::%</span> FruitSet <span class="sc">:</span> FruitSet <span class="sc">:</span> logical <span class="sc">:</span> FruitSet</span>
+<span id="cb17-17"><a href="#cb17-17"></a><span class="fu">fsMerge</span>(<span class="st">&quot;LAS&quot;</span>, <span class="st">&quot;LAS&quot;</span>, intersect) <span class="sc">%as%</span> <span class="fu">FruitSet</span>(<span class="st">&quot;LAS&quot;</span>)</span>
+<span id="cb17-18"><a href="#cb17-18"></a><span class="fu">fsMerge</span>(<span class="st">&quot;SAS&quot;</span>, <span class="st">&quot;SAS&quot;</span>, intersect) <span class="sc">%as%</span> <span class="fu">FruitSet</span>(<span class="st">&quot;SAS&quot;</span>)</span>
+<span id="cb17-19"><a href="#cb17-19"></a><span class="fu">fsMerge</span>(<span class="st">&quot;OFS&quot;</span>, b,     intersect) <span class="sc">%as%</span> <span class="fu">FruitSet</span>(<span class="st">&quot;OFS&quot;</span>)</span>
+<span id="cb17-20"><a href="#cb17-20"></a><span class="fu">fsMerge</span>(a,     <span class="st">&quot;OFS&quot;</span>, intersect) <span class="sc">%as%</span> <span class="fu">FruitSet</span>(<span class="st">&quot;OFS&quot;</span>)</span>
+<span id="cb17-21"><a href="#cb17-21"></a><span class="fu">fsMerge</span>(<span class="st">&quot;LAS&quot;</span>, <span class="st">&quot;SAS&quot;</span>, <span class="cn">TRUE</span>     ) <span class="sc">%as%</span> <span class="fu">FruitSet</span>(<span class="st">&quot;SAS&quot;</span>)</span>
+<span id="cb17-22"><a href="#cb17-22"></a><span class="fu">fsMerge</span>(<span class="st">&quot;SAS&quot;</span>, <span class="st">&quot;LAS&quot;</span>, <span class="cn">TRUE</span>     ) <span class="sc">%as%</span> <span class="fu">FruitSet</span>(<span class="st">&quot;SAS&quot;</span>)</span>
+<span id="cb17-23"><a href="#cb17-23"></a><span class="fu">fsMerge</span>(<span class="st">&quot;LAS&quot;</span>, <span class="st">&quot;SAS&quot;</span>, <span class="cn">FALSE</span>    ) <span class="sc">%as%</span> <span class="fu">FruitSet</span>(<span class="st">&quot;LAS&quot;</span>)</span>
+<span id="cb17-24"><a href="#cb17-24"></a><span class="fu">fsMerge</span>(<span class="st">&quot;SAS&quot;</span>, <span class="st">&quot;LAS&quot;</span>, <span class="cn">FALSE</span>    ) <span class="sc">%as%</span> <span class="fu">FruitSet</span>(<span class="st">&quot;LAS&quot;</span>)</span>
+<span id="cb17-25"><a href="#cb17-25"></a></span>
+<span id="cb17-26"><a href="#cb17-26"></a><span class="fu">fsMergeList</span>(xs, intersect) <span class="sc">%::%</span> FruitSetList <span class="sc">:</span> logical <span class="sc">:</span> FruitSet</span>
+<span id="cb17-27"><a href="#cb17-27"></a><span class="fu">fsMergeList</span>(xs, intersect) <span class="sc">%as%</span> </span>
+<span id="cb17-28"><a href="#cb17-28"></a>  <span class="fu">Reduce</span>(</span>
+<span id="cb17-29"><a href="#cb17-29"></a>    <span class="cf">function</span>(a, b) { <span class="fu">fsMerge</span>(a, b, intersect) }, </span>
+<span id="cb17-30"><a href="#cb17-30"></a>    xs[<span class="fu">tail</span>(<span class="fu">seq_along</span>(xs), <span class="at">n =</span> <span class="sc">-</span><span class="dv">1</span>)], </span>
+<span id="cb17-31"><a href="#cb17-31"></a>    <span class="at">init =</span> xs[[<span class="dv">1</span>]]</span>
+<span id="cb17-32"><a href="#cb17-32"></a>  )</span></code></pre></div>
+    </section>
+</article>
+
+        </main>
+
+        <footer>
+            Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </footer>
+    </body>
+</html>
