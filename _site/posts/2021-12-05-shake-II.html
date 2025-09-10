@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Clemens' blog - Workflow management with Haskell Shake II: Showcase</title>
+        <link rel="stylesheet" href="../css/default.css" />
+        <link rel="stylesheet" href="../css/syntax.css" />
+    </head>
+    <body>
+        <header>
+            <div class="logo">
+                <a href="https://orcid.org/0000-0003-3448-5715" aria-label="View ORCID record">
+                    <img src="../images/ORCID-iD_icon_BW_16x16.png" alt="ORCID iD" />
+                    0000-0003-3448-5715 ← Clemens
+                </a>
+            </div>
+            
+            <nav>
+                <a href="../">Other posts</a>
+                <a href="https://github.com/nevrome/nevrome.de">GitHub</a>
+                <!--
+                <a href="/about.html">About</a>
+                <a href="/contact.html">Contact</a>
+                <a href="/archive.html">Archive</a>
+                -->
+            </nav>
+        </header>
+
+        <main role="main">
+            <h1>Workflow management with Haskell Shake II: Showcase</h1>
+            <article>
+    <section class="header">
+        Posted
+        
+            originally <a href="https://medium.com/@nevrome/my-workflow-automation-journey-discovering-shake-haskell-5c270b93ff2b">here</a>
+        
+        on December  5, 2021
+        
+            by Clemens Schmid
+        
+    </section>
+    <section>
+        <p><em>This is part II of a two part blog post. See <a href="../posts/2021-12-05-shake-I.html">part I</a> for the story how I discovered Shake.</em></p>
+<p><em>GitHub repository with the code for this showcase: <a href="https://github.com/nevrome/ShakeExperiment" class="uri">https://github.com/nevrome/ShakeExperiment</a></em></p>
+<h2 id="using-shake">Using Shake</h2>
+<p><a href="https://shakebuild.com/">Shake</a> is a build system like <a href="https://www.gnu.org/software/make/">make</a>, so software to organize the compilation of large software projects. That’s why its <a href="https://shakebuild.com/manual">manual</a> fully focuses on building C code. In my perception building software and managing a data analysis pipeline are very similar tasks, though: in the end you want to run every script necessary to get a certain product, and it does not matter much, if that product are crosscompiled executables or a set of plots.</p>
+<p>The Shake homepage <a href="https://shakebuild.com/why">does a good</a> job in listing the advantages it has over its competitors. Here are three aspects I find particularly appealing about it:</p>
+<ul>
+<li><strong>“Pull-based”</strong>: Shake starts from the desired end product and figures out, which scripts it has to run to reach a certain result. If I modify a script, it only rebuilds everything that depends on it downstream.</li>
+<li><strong>Fast and parallel</strong>: Compiling and running the massive, 600 line Shakefile I need for my current main project feels fast and responsive. It’s incredibly satisfying to see Shake plow through independent scripts in parallel.</li>
+<li><strong>Configurable</strong>: Shake is a library with a simple interface, <a href="https://hackage.haskell.org/package/shake-0.19.6/docs/Development-Shake.html">extensive documentation</a> and useful <a href="https://hackage.haskell.org/package/shake-0.19.6/docs/Development-Shake.html#g:5">configuration options</a>. It boils down to idiomatic Haskell code, fully adjustable to your needs.</li>
+</ul>
+<p>To illustrate how it works, I want to present a basic example in the following section (<a href="https://github.com/nevrome/ShakeExperiment">Code on GitHub</a>).</p>
+<h3 id="a-simple-shakefile">A simple Shakefile</h3>
+<p>Let’s imagine a workflow like this:</p>
+<pre><code>raw_input.csv --&gt; A.R -
+                        \
+                          -&gt; C.R --&gt; 3D.png
+                        /
+                  B.R -</code></pre>
+<p>We have three <em>.R</em> scripts: <strong>A</strong>, <strong>B</strong> and <strong>C</strong>. <strong>A</strong> requires an input <em>.csv</em> file, <strong>B</strong> is independent of <strong>A</strong>, and <strong>C</strong> requires the intermediate output of <strong>A</strong> and <strong>B</strong> to produce our desired, final output <em>3D.png</em>.</p>
+<figure>
+<img src="../images/2021-12-05-shake-II/1_cFrMhLDcSVAt6zmR1BsCjg.webp" style="width:100.0%" alt="3D.png: Output of our example pipeline" />
+<figcaption aria-hidden="true">3D.png: Output of our example pipeline</figcaption>
+</figure>
+<p>In our file system this looks like this:</p>
+<pre><code>.
+├── input
+│   └── raw_input.csv
+└── scripts
+    ├── A.R
+    ├── B.R
+    └── C.R</code></pre>
+<p>Now let’s add a “Shakefile”, so a script that expresses our tiny pipeline with Shake. This boils down to a Haskell script with a <code>main</code> method, which describes the interaction of these files in a way Shake can parse and understand.</p>
+<p>In my opinion the most easy way to run an independent Haskell script is via the <a href="https://docs.haskellstack.org/en/stable/GUIDE/#script-interpreter">Stack script interpreter</a>. So if we have stack installed on our system, we can create a new script file <em>Shakefile.hs</em> and append these two lines to the top:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode numberSource haskell numberLines"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1"></a><span class="pp">#!/usr/bin/env stack</span></span>
+<span id="cb3-2"><a href="#cb3-2"></a><span class="co">-- stack --resolver lts-18.7 script --package shake</span></span></code></pre></div>
+<p>If we later run our script with <em>./Shakefile.hs</em>, stack will automatically download and prepare the necessary dependencies: the <a href="https://www.haskell.org/ghc/">Glasgow Haskell Compiler</a> and the Shake package. That allows us to import modules with functions and data types from Shake.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode numberSource haskell numberLines"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1"></a><span class="kw">import</span> <span class="dt">Development.Shake</span></span>
+<span id="cb4-2"><a href="#cb4-2"></a><span class="kw">import</span> <span class="dt">Development.Shake.Command</span></span>
+<span id="cb4-3"><a href="#cb4-3"></a><span class="kw">import</span> <span class="dt">Development.Shake.FilePath</span></span></code></pre></div>
+<p>Finally we can define our main method like this:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode numberSource haskell numberLines"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb5-2"><a href="#cb5-2"></a>main <span class="ot">=</span> shake shakeOptions {shakeFiles <span class="ot">=</span> <span class="st">&quot;_build&quot;</span>} <span class="op">$</span> <span class="kw">do</span>  want [ <span class="st">&quot;output&quot;</span> <span class="op">&lt;/&gt;</span> <span class="st">&quot;3D.png&quot;</span> ]</span>
+<span id="cb5-3"><a href="#cb5-3"></a>  </span>
+<span id="cb5-4"><a href="#cb5-4"></a>  <span class="st">&quot;output&quot;</span> <span class="op">&lt;/&gt;</span> <span class="st">&quot;3D.png&quot;</span> <span class="op">%&gt;</span> \out <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb5-5"><a href="#cb5-5"></a>    <span class="kw">let</span> script <span class="ot">=</span> <span class="st">&quot;scripts&quot;</span> <span class="op">&lt;/&gt;</span> <span class="st">&quot;C.R&quot;</span></span>
+<span id="cb5-6"><a href="#cb5-6"></a>        dataFiles <span class="ot">=</span> [          <span class="st">&quot;intermediate&quot;</span> <span class="op">&lt;/&gt;</span> <span class="st">&quot;dens_surface.RData&quot;</span>, </span>
+<span id="cb5-7"><a href="#cb5-7"></a>          <span class="st">&quot;intermediate&quot;</span> <span class="op">&lt;/&gt;</span> <span class="st">&quot;colours.RData&quot;</span> </span>
+<span id="cb5-8"><a href="#cb5-8"></a>          ]</span>
+<span id="cb5-9"><a href="#cb5-9"></a>    need <span class="op">$</span> script <span class="op">:</span> dataFiles</span>
+<span id="cb5-10"><a href="#cb5-10"></a>    cmd_ <span class="st">&quot;Rscript&quot;</span> script  <span class="st">&quot;intermediate&quot;</span> <span class="op">&lt;/&gt;</span> <span class="st">&quot;dens_surface.RData&quot;</span> <span class="op">%&gt;</span> \out <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb5-11"><a href="#cb5-11"></a>    <span class="kw">let</span> script <span class="ot">=</span> <span class="st">&quot;scripts&quot;</span> <span class="op">&lt;/&gt;</span> <span class="st">&quot;A.R&quot;</span></span>
+<span id="cb5-12"><a href="#cb5-12"></a>        dataFiles <span class="ot">=</span> [ <span class="st">&quot;input&quot;</span> <span class="op">&lt;/&gt;</span> <span class="st">&quot;raw_input.csv&quot;</span> ]</span>
+<span id="cb5-13"><a href="#cb5-13"></a>    need <span class="op">$</span> script <span class="op">:</span> dataFiles</span>
+<span id="cb5-14"><a href="#cb5-14"></a>    cmd_ <span class="st">&quot;Rscript&quot;</span> script  <span class="st">&quot;intermediate&quot;</span> <span class="op">&lt;/&gt;</span> <span class="st">&quot;colours.RData&quot;</span> <span class="op">%&gt;</span> \out <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb5-15"><a href="#cb5-15"></a>    <span class="kw">let</span> script <span class="ot">=</span> <span class="st">&quot;scripts&quot;</span> <span class="op">&lt;/&gt;</span> <span class="st">&quot;B.R&quot;</span></span>
+<span id="cb5-16"><a href="#cb5-16"></a>    need [ script ]</span>
+<span id="cb5-17"><a href="#cb5-17"></a>    cmd_ <span class="st">&quot;Rscript&quot;</span> script</span></code></pre></div>
+<p>I don’t want to get lost in the intricate details of Haskell and the Shake interface here, so it shall be enough to say that the function</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode numberSource haskell numberLines"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1"></a><span class="ot">shake ::</span> <span class="dt">ShakeOptions</span> <span class="ot">-&gt;</span> <span class="dt">Rules</span> () <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span></code></pre></div>
+<p>called at the very beginning of the <code>main</code> method takes a configuration type <code>ShakeOptions</code> and a set of rules – which can be written with the Monad instance and do-notation – and evaluates them and the actions within them in a meaningful order.</p>
+<p>That’s how one of these rules looks like:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode numberSource haskell numberLines"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1"></a><span class="st">&quot;intermediate&quot;</span> <span class="op">&lt;/&gt;</span> <span class="st">&quot;dens_surface.RData&quot;</span> <span class="op">%&gt;</span> \out <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb7-2"><a href="#cb7-2"></a>    <span class="kw">let</span> script <span class="ot">=</span> <span class="st">&quot;scripts&quot;</span> <span class="op">&lt;/&gt;</span> <span class="st">&quot;A.R&quot;</span></span>
+<span id="cb7-3"><a href="#cb7-3"></a>        dataFiles <span class="ot">=</span> [ <span class="st">&quot;input&quot;</span> <span class="op">&lt;/&gt;</span> <span class="st">&quot;raw_input.csv&quot;</span> ]</span>
+<span id="cb7-4"><a href="#cb7-4"></a>    need <span class="op">$</span> script <span class="op">:</span> dataFiles</span>
+<span id="cb7-5"><a href="#cb7-5"></a>    cmd_ <span class="st">&quot;Rscript&quot;</span> script</span></code></pre></div>
+<p>Each rule has output files (here: <em>dens_surface.RData</em> in the directory <em>intermediate</em>) and requires input files (here: the script <strong>A.R</strong> and <em>input/raw_input.csv</em>). It finally also has some mechanism that connects input and output, so for example a command to run a specific script that takes the input and yields the output (here: <code>cmd_ "Rscript" script</code>).</p>
+<p>In a Shakefile you write all rules necessary to fully represent your pipeline. The rest is pure magic: Shake runs all scripts in the right order, creates missing directories and keeps carefully track of the state of each input and output file.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> ./Shakefile1.hs </span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Rscript (for intermediate/colours.RData)</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Rscript (for intermediate/dens_surface.RData)</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Rscript (for output/3D.png)</span></span></code></pre></div>
+<p>After running our toy example, our directory will look like this, so full of output files:</p>
+<pre><code>.
+├── _build
+├── input
+│   └── raw_input.csv
+├── intermediate
+│   ├── colours.RData
+│   └── dens_surface.RData
+├── output
+│   └── 3D.png
+├── scripts
+│   ├── A.R
+│   ├── B.R
+│   └── C.R
+└── Shakefile1.hs</code></pre>
+<p><em>_build</em> is where Shake stores its knowledge and puts intermediate files for itself. You should certainly add it to your <em>.gitignore</em> file, if you work with Git, just as the <em>intermediate</em> and <em>output</em> directories, which are created by the pipeline.</p>
+<p>As a small experiment and to test Shake’s power, we can edit one of the scripts. <strong>B</strong>.R only produces a colour vector to be used in the plotting function in <strong>C</strong>.R, so it’s an easy target for modification. And indeed: If we edit one of the colours there and run our script again, it only runs <strong>B</strong> and <strong>C</strong>, producing a new, nifty <em>3D.png</em>. Brilliant!</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> ./Shakefile1.hs </span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Rscript (for intermediate/colours.RData)</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Rscript (for output/3D.png)</span></span></code></pre></div>
+<figure>
+<img src="../images/2021-12-05-shake-II/1_9JOrZ76udsvr1kKBippbYg.webp" style="width:100.0%" alt="3D.png: Output of our example pipeline after a change in B.R" />
+<figcaption aria-hidden="true">3D.png: Output of our example pipeline after a change in B.R</figcaption>
+</figure>
+<h3 id="adjustments-for-my-needs-and-convenience">Adjustments for my needs and convenience</h3>
+<p>Our very simple Shake script is already fulfilling its basic purpose. The pipeline is fully defined and runs, when we execute the Shakefile.</p>
+<p>But some more advanced elements I personally need for my actual worflows are missing (e.g. support for singularity and our in-house HPC system). Shake itself also has some neat configuration options to explore. And finally the versatility of Haskell should allow to rewrite the core pipeline mechanics in shorter and clearer syntax. So: We have some room for improvement, and I wanted to dive deeper into that.</p>
+<p>Here’s a refactored version of the script above:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode numberSource haskell numberLines"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1"></a><span class="pp">#!/usr/bin/env stack</span></span>
+<span id="cb11-2"><a href="#cb11-2"></a><span class="co">-- stack --resolver lts-18.7 script --package shake</span></span>
+<span id="cb11-3"><a href="#cb11-3"></a></span>
+<span id="cb11-4"><a href="#cb11-4"></a><span class="kw">import</span> <span class="dt">Development.Shake</span></span>
+<span id="cb11-5"><a href="#cb11-5"></a><span class="kw">import</span> <span class="dt">Development.Shake.Command</span></span>
+<span id="cb11-6"><a href="#cb11-6"></a><span class="kw">import</span> <span class="dt">Development.Shake.FilePath</span></span>
+<span id="cb11-7"><a href="#cb11-7"></a></span>
+<span id="cb11-8"><a href="#cb11-8"></a><span class="kw">data</span> <span class="dt">Settings</span> <span class="ot">=</span> <span class="dt">Settings</span> {</span>
+<span id="cb11-9"><a href="#cb11-9"></a><span class="ot">  singularityContainer ::</span> <span class="dt">FilePath</span></span>
+<span id="cb11-10"><a href="#cb11-10"></a>,<span class="ot"> bindPath ::</span> <span class="dt">String</span></span>
+<span id="cb11-11"><a href="#cb11-11"></a>,<span class="ot"> qsubCommand ::</span> <span class="dt">String</span></span>
+<span id="cb11-12"><a href="#cb11-12"></a>}</span>
+<span id="cb11-13"><a href="#cb11-13"></a></span>
+<span id="cb11-14"><a href="#cb11-14"></a>mpiEVAClusterSettings <span class="ot">=</span> <span class="dt">Settings</span> {</span>
+<span id="cb11-15"><a href="#cb11-15"></a>  singularityContainer <span class="ot">=</span> <span class="st">&quot;singularity_experiment.sif&quot;</span></span>
+<span id="cb11-16"><a href="#cb11-16"></a>, bindPath             <span class="ot">=</span> <span class="st">&quot;--bind=/mnt/archgen/users/schmid&quot;</span></span>
+<span id="cb11-17"><a href="#cb11-17"></a>, qsubCommand          <span class="ot">=</span> <span class="st">&quot;qsub -sync y -b y -cwd -q archgen.q \</span></span>
+<span id="cb11-18"><a href="#cb11-18"></a><span class="st">                          \-pe smp 1 -l h_vmem=10G -now n -V -j y \</span></span>
+<span id="cb11-19"><a href="#cb11-19"></a><span class="st">                          \-o ~/log -N example&quot;</span></span>
+<span id="cb11-20"><a href="#cb11-20"></a>}</span>
+<span id="cb11-21"><a href="#cb11-21"></a></span>
+<span id="cb11-22"><a href="#cb11-22"></a><span class="ot">relevantRunCommand ::</span> <span class="dt">Settings</span> <span class="ot">-&gt;</span> <span class="dt">FilePath</span> <span class="ot">-&gt;</span> <span class="dt">Action</span> ()</span>
+<span id="cb11-23"><a href="#cb11-23"></a>relevantRunCommand (<span class="dt">Settings</span> singularityContainer bindPath qsubCommand) x</span>
+<span id="cb11-24"><a href="#cb11-24"></a>  <span class="op">|</span> takeExtension x <span class="op">==</span> <span class="st">&quot;.R&quot;</span>  <span class="ot">=</span> cmd_ qsubCommand </span>
+<span id="cb11-25"><a href="#cb11-25"></a>      <span class="st">&quot;singularity&quot;</span> <span class="st">&quot;exec&quot;</span> bindPath singularityContainer <span class="st">&quot;Rscript&quot;</span> x</span>
+<span id="cb11-26"><a href="#cb11-26"></a>  <span class="op">|</span> takeExtension x <span class="op">==</span> <span class="st">&quot;.sh&quot;</span> <span class="ot">=</span> cmd_ qsubCommand </span>
+<span id="cb11-27"><a href="#cb11-27"></a>      <span class="st">&quot;singularity&quot;</span> <span class="st">&quot;exec&quot;</span> bindPath singularityContainer x</span>
+<span id="cb11-28"><a href="#cb11-28"></a></span>
+<span id="cb11-29"><a href="#cb11-29"></a><span class="kw">infixl</span> <span class="dv">8</span> <span class="op">%$</span></span>
+<span id="cb11-30"><a href="#cb11-30"></a><span class="ot">(%$) ::</span> <span class="dt">FilePath</span> <span class="ot">-&gt;</span> ([<span class="dt">FilePath</span>], [<span class="dt">FilePath</span>]) <span class="ot">-&gt;</span> <span class="dt">Rules</span> ()</span>
+<span id="cb11-31"><a href="#cb11-31"></a>(<span class="op">%$</span>) script (inFiles, outFiles) <span class="ot">=</span></span>
+<span id="cb11-32"><a href="#cb11-32"></a>  <span class="kw">let</span> settings <span class="ot">=</span> mpiEVAClusterSettings</span>
+<span id="cb11-33"><a href="#cb11-33"></a>  <span class="kw">in</span> outFiles <span class="op">&amp;%&gt;</span> \out <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb11-34"><a href="#cb11-34"></a>    need <span class="op">$</span> [script, singularityContainer settings] <span class="op">++</span> inFiles</span>
+<span id="cb11-35"><a href="#cb11-35"></a>    relevantRunCommand settings script</span>
+<span id="cb11-36"><a href="#cb11-36"></a></span>
+<span id="cb11-37"><a href="#cb11-37"></a><span class="kw">infixl</span> <span class="dv">9</span> <span class="op">--&gt;</span></span>
+<span id="cb11-38"><a href="#cb11-38"></a><span class="ot">(--&gt;) ::</span> a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> (a,b)</span>
+<span id="cb11-39"><a href="#cb11-39"></a>(<span class="op">--&gt;</span>) x y <span class="ot">=</span> (x,y)</span>
+<span id="cb11-40"><a href="#cb11-40"></a></span>
+<span id="cb11-41"><a href="#cb11-41"></a>input x <span class="ot">=</span> <span class="st">&quot;input&quot;</span> <span class="op">&lt;/&gt;</span> x</span>
+<span id="cb11-42"><a href="#cb11-42"></a>intermediate x <span class="ot">=</span> <span class="st">&quot;intermediate&quot;</span> <span class="op">&lt;/&gt;</span> x</span>
+<span id="cb11-43"><a href="#cb11-43"></a>scripts x <span class="ot">=</span> <span class="st">&quot;scripts&quot;</span> <span class="op">&lt;/&gt;</span> x</span>
+<span id="cb11-44"><a href="#cb11-44"></a>output x <span class="ot">=</span> <span class="st">&quot;output&quot;</span> <span class="op">&lt;/&gt;</span> x</span>
+<span id="cb11-45"><a href="#cb11-45"></a></span>
+<span id="cb11-46"><a href="#cb11-46"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb11-47"><a href="#cb11-47"></a>main <span class="ot">=</span> shake shakeOptions {</span>
+<span id="cb11-48"><a href="#cb11-48"></a>      shakeFiles     <span class="ot">=</span> <span class="st">&quot;_build&quot;</span></span>
+<span id="cb11-49"><a href="#cb11-49"></a>    , shakeThreads   <span class="ot">=</span> <span class="dv">3</span></span>
+<span id="cb11-50"><a href="#cb11-50"></a>    , shakeChange    <span class="ot">=</span> <span class="dt">ChangeModtime</span></span>
+<span id="cb11-51"><a href="#cb11-51"></a>    , shakeProgress  <span class="ot">=</span> progressSimple</span>
+<span id="cb11-52"><a href="#cb11-52"></a>    , shakeColor     <span class="ot">=</span> <span class="dt">True</span></span>
+<span id="cb11-53"><a href="#cb11-53"></a>    , shakeVerbosity <span class="ot">=</span> <span class="dt">Verbose</span></span>
+<span id="cb11-54"><a href="#cb11-54"></a>    , shakeTimings   <span class="ot">=</span> <span class="dt">True</span></span>
+<span id="cb11-55"><a href="#cb11-55"></a>    } <span class="op">$</span> <span class="kw">do</span></span>
+<span id="cb11-56"><a href="#cb11-56"></a>  want [output <span class="st">&quot;3D.png&quot;</span>]</span>
+<span id="cb11-57"><a href="#cb11-57"></a>  scripts <span class="st">&quot;A.R&quot;</span> <span class="op">%$</span> </span>
+<span id="cb11-58"><a href="#cb11-58"></a>    [input <span class="st">&quot;raw_input.csv&quot;</span>] <span class="op">--&gt;</span> [intermediate <span class="st">&quot;dens_surface.RData&quot;</span>]</span>
+<span id="cb11-59"><a href="#cb11-59"></a>  scripts <span class="st">&quot;B.R&quot;</span> <span class="op">%$</span> </span>
+<span id="cb11-60"><a href="#cb11-60"></a>    [ ] <span class="op">--&gt;</span> [intermediate <span class="st">&quot;colours.RData&quot;</span>]</span>
+<span id="cb11-61"><a href="#cb11-61"></a>  scripts <span class="st">&quot;C.R&quot;</span> <span class="op">%$</span> </span>
+<span id="cb11-62"><a href="#cb11-62"></a>    <span class="fu">map</span> intermediate [<span class="st">&quot;dens_surface.RData&quot;</span>, <span class="st">&quot;colours.RData&quot;</span>] <span class="op">--&gt;</span> </span>
+<span id="cb11-63"><a href="#cb11-63"></a>    [output <span class="st">&quot;3D.png&quot;</span>]</span></code></pre></div>
+<p>There’s plenty to unpack here. So let’s pull it apart, starting with the the new files I added to our simple setup above.</p>
+<pre><code>.
+├── input
+│   └── raw_input.csv
+├── scripts
+│   ├── A.R
+│   ├── B.R
+│   └── C.R
+├── Shakefile2.hs
+├── singularity_build_sif.sh
+├── singularity_experiment.def
+└── singularity_experiment.sif</code></pre>
+<p>Specifically for <a href="https://sylabs.io/guides/2.6/user-guide/quick_start.html">Singularity</a> I added three files: <em>singularity_build_sif.sh</em> is a bash script to build the singularity image file <em>singularity_experiment.sif</em> as defined in <em>singularity_experiment.def</em>:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode numberSource dockerfile numberLines"><code class="sourceCode dockerfile"><span id="cb13-1"><a href="#cb13-1"></a>Bootstrap: docker</span>
+<span id="cb13-2"><a href="#cb13-2"></a>From: rocker/r-base:4.1.0%post</span>
+<span id="cb13-3"><a href="#cb13-3"></a> <span class="co"># install the necessary R packages</span></span>
+<span id="cb13-4"><a href="#cb13-4"></a> R -- slave -e <span class="st">'install.packages(“MASS”)'</span></span></code></pre></div>
+<p>This simple configuration file describes a reproducible, self-sufficient computational environment with R v4.1.0 and only one additional R package (MASS). Singularity is very <a href="https://sylabs.io/guides/2.6/user-guide/singularity_and_docker.html">well integrated with docker</a> – here I build directly on top of a <a href="https://www.rocker-project.org/">rocker</a> image. As I don’t want to get lost in singularity here, I’ll leave it at that, and instead jump right into the new Shakefile.</p>
+<h3 id="rules-that-dont-hurt-the-eyes"><strong>Rules that don’t hurt the eyes</strong></h3>
+<p>I think the build rule creation syntax in Shake is an eyesore – as you can see in the first Shakefile above. For my new Shakefile I wrote a wrapper, that expresses rules more clearly.</p>
+<p>Let’s start with the new operator <code>%$</code>, which encapsulates Shake’s <code>%&gt;</code>:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode numberSource haskell numberLines"><code class="sourceCode haskell"><span id="cb14-1"><a href="#cb14-1"></a><span class="ot">(%$) ::</span> <span class="dt">FilePath</span> <span class="ot">-&gt;</span> ([<span class="dt">FilePath</span>], [<span class="dt">FilePath</span>]) <span class="ot">-&gt;</span> <span class="dt">Rules</span> ()</span>
+<span id="cb14-2"><a href="#cb14-2"></a>(<span class="op">%$</span>) script (inFiles, outFiles) <span class="ot">=</span></span>
+<span id="cb14-3"><a href="#cb14-3"></a>  <span class="kw">let</span> settings <span class="ot">=</span> mpiEVAClusterSettings</span>
+<span id="cb14-4"><a href="#cb14-4"></a>  <span class="kw">in</span> outFiles <span class="op">&amp;%&gt;</span> \out <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb14-5"><a href="#cb14-5"></a>    need <span class="op">$</span> [script, singularityContainer settings] <span class="op">++</span> inFiles</span>
+<span id="cb14-6"><a href="#cb14-6"></a>    relevantRunCommand settings script</span></code></pre></div>
+<p>It allows to write rules in an – in my opinion – much more idiomatic way:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode numberSource haskell numberLines"><code class="sourceCode haskell"><span id="cb15-1"><a href="#cb15-1"></a>script <span class="op">%$</span> ([input files], [output files])</span></code></pre></div>
+<p>The tuple <code>([],[])</code> to express input and output files in the second argument still feels a bit awkward, so I added an operator <code>--&gt;</code> to express tuple creation more neatly. Using an arrow for that of course only makes sense in the pipeline context we’re covering here. To make sure that the two new operators are actually evaluated in the correct order, we manually have to set their <a href="https://kowainik.github.io/posts/fixity#fixity-declaration">fixity</a>.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode numberSource haskell numberLines"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1"></a><span class="ot">(--&gt;) ::</span> a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> (a,b)</span>
+<span id="cb16-2"><a href="#cb16-2"></a>(<span class="op">--&gt;</span>) x y <span class="ot">=</span> (x,y)<span class="kw">infixl</span> <span class="dv">8</span> <span class="op">%$</span></span>
+<span id="cb16-3"><a href="#cb16-3"></a><span class="kw">infixl</span> <span class="dv">9</span> <span class="op">--&gt;</span></span></code></pre></div>
+<p>That boils rule creation down to some wonderful syntax:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode numberSource haskell numberLines"><code class="sourceCode haskell"><span id="cb17-1"><a href="#cb17-1"></a>script <span class="op">%$</span> [input files] <span class="op">--&gt;</span> [output files]</span></code></pre></div>
+<p>The horrible</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode numberSource haskell numberLines"><code class="sourceCode haskell"><span id="cb18-1"><a href="#cb18-1"></a><span class="st">&quot;intermediate&quot;</span> <span class="op">&lt;/&gt;</span> <span class="st">&quot;colours.RData&quot;</span> <span class="op">%&gt;</span> \out <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb18-2"><a href="#cb18-2"></a>    <span class="kw">let</span> script <span class="ot">=</span> <span class="st">&quot;scripts&quot;</span> <span class="op">&lt;/&gt;</span> <span class="st">&quot;B.R&quot;</span></span>
+<span id="cb18-3"><a href="#cb18-3"></a>    need [ script ]</span>
+<span id="cb18-4"><a href="#cb18-4"></a>    cmd_ <span class="st">&quot;Rscript&quot;</span> script</span></code></pre></div>
+<p>becomes a much more pleasant</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode numberSource haskell numberLines"><code class="sourceCode haskell"><span id="cb19-1"><a href="#cb19-1"></a>scripts <span class="st">&quot;B.R&quot;</span> <span class="op">%$</span> [ ] <span class="op">--&gt;</span> [intermediate <span class="st">&quot;colours.RData&quot;</span>]</span></code></pre></div>
+<h3 id="custom-run-commands-and-environments"><strong>Custom run commands and environments</strong></h3>
+<p>Now that the rules look nicer, we can turn towards the system environment. As described above, I have pretty specific requirements how exactly my scripts should be run: Through our high performance computing setting and through a singularity container.</p>
+<pre><code>HPC runs Singularity runs Rscript runs my scripts</code></pre>
+<p>To express this, I added the function <code>relevantRunCommand</code>, that does just that: compiling a relevant run command – here depending on the file extension of the respective script.</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode numberSource haskell numberLines"><code class="sourceCode haskell"><span id="cb21-1"><a href="#cb21-1"></a><span class="ot">relevantRunCommand ::</span> <span class="dt">Settings</span> <span class="ot">-&gt;</span> <span class="dt">FilePath</span> <span class="ot">-&gt;</span> <span class="dt">Action</span> ()</span>
+<span id="cb21-2"><a href="#cb21-2"></a>relevantRunCommand (<span class="dt">Settings</span> singularityContainer bindPath qsubCommand) x</span>
+<span id="cb21-3"><a href="#cb21-3"></a>  <span class="op">|</span> takeExtension x <span class="op">==</span> <span class="st">&quot;.R&quot;</span>  <span class="ot">=</span> cmd_ qsubCommand</span>
+<span id="cb21-4"><a href="#cb21-4"></a>      <span class="st">&quot;singularity&quot;</span> <span class="st">&quot;exec&quot;</span> bindPath singularityContainer <span class="st">&quot;Rscript&quot;</span> x</span>
+<span id="cb21-5"><a href="#cb21-5"></a>  <span class="op">|</span> takeExtension x <span class="op">==</span> <span class="st">&quot;.sh&quot;</span> <span class="ot">=</span> cmd_ qsubCommand</span>
+<span id="cb21-6"><a href="#cb21-6"></a>      <span class="st">&quot;singularity&quot;</span> <span class="st">&quot;exec&quot;</span> bindPath singularityContainer x</span></code></pre></div>
+<p>This function also requires the configuration type <code>Settings</code>, which serves to make <code>relevantRunCommand</code> somewhat flexible. It stores highly variable configuration like the path to the singularity container, which directories should be mapped into the container via <a href="https://sylabs.io/guides/3.0/user-guide/bind_paths_and_mounts.html">bind mounts</a>, and how exactly the scripts should be submitted to run on the HPC cluster. The example here is simplified, but true to the real setup I typically use:</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode numberSource haskell numberLines"><code class="sourceCode haskell"><span id="cb22-1"><a href="#cb22-1"></a><span class="kw">data</span> <span class="dt">Settings</span> <span class="ot">=</span> <span class="dt">Settings</span> {</span>
+<span id="cb22-2"><a href="#cb22-2"></a><span class="ot">  singularityContainer ::</span> <span class="dt">FilePath</span></span>
+<span id="cb22-3"><a href="#cb22-3"></a>,<span class="ot"> bindPath ::</span> <span class="dt">String</span></span>
+<span id="cb22-4"><a href="#cb22-4"></a>,<span class="ot"> qsubCommand ::</span> <span class="dt">String</span></span>
+<span id="cb22-5"><a href="#cb22-5"></a>}mpiEVAClusterSettings <span class="ot">=</span> <span class="dt">Settings</span> {</span>
+<span id="cb22-6"><a href="#cb22-6"></a>  singularityContainer <span class="ot">=</span> <span class="st">&quot;singularity_experiment.sif&quot;</span></span>
+<span id="cb22-7"><a href="#cb22-7"></a>, bindPath             <span class="ot">=</span> <span class="st">&quot;--bind=/mnt/archgen/users/schmid&quot;</span></span>
+<span id="cb22-8"><a href="#cb22-8"></a>, qsubCommand          <span class="ot">=</span> <span class="st">&quot;qsub -sync y -b y -cwd -q archgen.q \</span></span>
+<span id="cb22-9"><a href="#cb22-9"></a><span class="st">                          \-pe smp 1 -l h_vmem=10G -now n -V -j y \</span></span>
+<span id="cb22-10"><a href="#cb22-10"></a><span class="st">                          \-o ~/log -N example&quot;</span></span>
+<span id="cb22-11"><a href="#cb22-11"></a>}</span></code></pre></div>
+<p>For my real production code, the settings data type is a bit more complex and features additional elements – for example different cluster submission commands for different computing power requirements.</p>
+<p>You see that the building of the singularity image itself is not part of the pipeline. Building it requires <code>sudo</code> permissions, and – more fundamentally –building it every time would undermine reproducibility: The recipe in the <em>.def</em> file requires multiple different online servers to be available and to always provide specific versions of certain software dependencies. In a way, the singularity image should be considered a stable input data file, so nothing to be produced on the fly.</p>
+<p>This approach to environment management and configuration is bare-bones. I like the flexibility that comes with it, but I also see the appeal of a higher level of abstraction as provided by e.g. <a href="https://www.nextflow.io/docs/latest/executor.html">nextflow’s executors</a>.</p>
+<h3 id="shake-options">Shake options</h3>
+<p>Shake itself comes with a number of easily configurable options how it should run. They are set in the record type <code>shakeOptions</code>, as described <a href="https://hackage.haskell.org/package/shake-0.19.6/docs/Development-Shake.html#g:5">here</a>. These are the ones I modified for this example:</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode numberSource haskell numberLines"><code class="sourceCode haskell"><span id="cb23-1"><a href="#cb23-1"></a>shakeOptions {</span>
+<span id="cb23-2"><a href="#cb23-2"></a>  shakeFiles     <span class="ot">=</span> <span class="st">&quot;_build&quot;</span></span>
+<span id="cb23-3"><a href="#cb23-3"></a>, shakeThreads   <span class="ot">=</span> <span class="dv">3</span></span>
+<span id="cb23-4"><a href="#cb23-4"></a>, shakeChange    <span class="ot">=</span> <span class="dt">ChangeModtime</span></span>
+<span id="cb23-5"><a href="#cb23-5"></a>, shakeProgress  <span class="ot">=</span> progressSimple</span>
+<span id="cb23-6"><a href="#cb23-6"></a>, shakeColor     <span class="ot">=</span> <span class="dt">True</span></span>
+<span id="cb23-7"><a href="#cb23-7"></a>, shakeVerbosity <span class="ot">=</span> <span class="dt">Verbose</span></span>
+<span id="cb23-8"><a href="#cb23-8"></a>, shakeTimings   <span class="ot">=</span> <span class="dt">True</span></span>
+<span id="cb23-9"><a href="#cb23-9"></a>}</span></code></pre></div>
+<ul>
+<li><strong>shakeFiles</strong>: The directory used for storing Shake metadata files. We already used that option above.</li>
+<li><strong>shakeThreads</strong>: The maximum number of rules to run in parallel. In our pipeline there are only three rules, and one depends on two others, so three is literally more than enough for maximum speed.</li>
+<li><strong>shakeChange</strong>: How should Shake determine if a file has changed? The <a href="https://hackage.haskell.org/package/shake-0.19.6/docs/Development-Shake.html#t:Change">data type</a> <code>Change</code> has multiple constructors, including the default <code>ChangeModetime</code>, which causes Shake to invalidate files based on timestamps or alternatively <code>ChangeDigest</code>, which does so via checksums.</li>
+<li><strong>shakeProgress</strong>: How progess should be reported, when the pipeline is running. <code>progressSimple</code> is a basic default, but there is an <a href="https://hackage.haskell.org/package/shake-0.19.6/docs/Development-Shake.html#t:Progress">entire datatype</a> <code>Progress</code>to specify configuration options.</li>
+<li><strong>shakeColor</strong>: Whether to colorize the command line output.</li>
+<li><strong>shakeVerbosity</strong>: How verbose the command line output should be. A <a href="https://hackage.haskell.org/package/shake-0.19.6/docs/Development-Shake.html#t:Verbosity">data type</a> <code>Verbosity</code> controles the different possible levels.</li>
+<li><strong>shakeTimings</strong>: Print timing information for each stage at the end.</li>
+</ul>
+<p>There is more to discover among these options and beyond in the mechanisms Shake provides. Fortunately the library is <a href="https://hackage.haskell.org/package/shake-0.19.6/docs/Development-Shake.html">quite extensively documented</a>.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>Thanks for bearing with me until here. I wrote this post partly to document my decision process in this matter, but also to bring across one major and two minor points:</p>
+<ul>
+<li><strong>Workflow managers are useful</strong> even for small projects. Check if a tool like nextflow, snakemake or target (or whatever you prefer!) can make your daily work easier, faster and more reproducible. I find it relieving if I can be sure, that all my plots represent the latest stage of work in every script.</li>
+<li><strong>Shake is a powerful tool</strong>, if you know some Haskell. It’s flexible, very well written and elaborately documented.</li>
+<li><strong>Haskell is a beautiful language</strong> to express logic in a concise, yet clear way. Its custom operators can reduce repetitive code to a minimum.</li>
+</ul>
+<p><em><strong>Acknowledgements:</strong> I got some valuable feedback by my colleague Alexander Hübner (<span class="citation" data-cites="alexhbnr">@alexhbnr</span>) for this post.</em></p>
+    </section>
+</article>
+
+        </main>
+
+        <footer>
+            Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </footer>
+    </body>
+</html>
