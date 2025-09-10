@@ -21,7 +21,7 @@ provides an estimation of the remaining time (ETA) to finish a computation.
 Imagine you added a progress bar with RcppProgress to your function
 `long_computation()` following the example from the first article mentioned above.
 
-```cpp
+```cpp {.numberLines}
 // [[Rcpp::depends(RcppProgress)]]
 #include <progress.hpp>
 #include <progress_bar.hpp>
@@ -39,9 +39,7 @@ double long_computation(int nb, bool display_progress=true) {
     }
     return sum + nb;
 }
-```
 
-```cpp
 long_computation(10)
 ```
 
@@ -66,7 +64,7 @@ RcppProgress makes it now easy to create your own implementation of a progress b
 Your own class has to be derived from the abstract class `ProgressBar` that defines some 
 basic virtual methods:
 
-```cpp
+```cpp {.numberLines}
 class ProgressBar {
   public:
     virtual ~ProgressBar() = 0;
@@ -82,7 +80,7 @@ not rely on the destructor to finalize the display.
 
 A very **minimal setup** could look something like this: 
 
-```cpp
+```cpp {.numberLines}
 #include <R_ext/Print.h>
 
 // [[Rcpp::depends(RcppProgress)]]
@@ -133,9 +131,7 @@ double long_computation_minimal(int nb, bool display_progress=true) {
     }
     return sum + nb;
 }
-```
 
-```cpp
 long_computation_minimal(10)
 ```    
 
@@ -167,7 +163,7 @@ found [here](https://github.com/kforner/rcpp_progress/blob/5b0ec0d672c7758cf4c41
 The following preprocessor statements load Rinterface.h if the code is compiled 
 on a non-windows computer.  
 
-```cpp
+```cpp {.numberLines}
 #if !defined(WIN32) && !defined(__WIN32) && !defined(__WIN32__)
 #include <Rinterface.h>
 #endif
@@ -182,7 +178,7 @@ the time measurement starts and the following turns where the time is picked off
 The measured time values are stored in two variables `start` and `end` of class
 `time_t` (from [ctime](http://www.cplusplus.com/reference/ctime/)).
 
-```cpp
+```cpp {.numberLines}
 class ETAProgressBar: public ProgressBar{
 
   // ...
@@ -201,7 +197,7 @@ class ETAProgressBar: public ProgressBar{
 The `display()` function initializes the progress bar visualization. The first two lines
 are hard coded ASCII art.
 
-```cpp 
+```cpp {.numberLines}
 void display() {
   REprintf("0%%   10   20   30   40   50   60   70   80   90   100%%\n");
   REprintf("[----|----|----|----|----|----|----|----|----|----|\n");
@@ -220,7 +216,7 @@ A string with sufficient whitespaces is also added to ensure that this dynamical
 line is overwritten completely from turn to turn. `REprintf("\r");` triggers a carriage return
 to make this continuous overwriting possible.
 
-```cpp       
+```cpp {.numberLines}
 void update(float progress) {
   
     // stop if already finalized
@@ -272,7 +268,7 @@ void update(float progress) {
 seconds to a human-readable string. The basic algorithm is based on an example from 
 [programmingnotes.org](http://www.programmingnotes.org/?p=2062). 
 
-```cpp
+```cpp {.numberLines}
 std::string _time_to_string(double seconds) {
   
     int time = (int) seconds;
@@ -303,7 +299,7 @@ that expresses the correct fraction of `_max_ticks`. `_construct_ticks_display_s
 takes this value and parses a string with `*` symbols and whitespaces that can be plotted
 as a visual progress indication.
 
-```cpp
+```cpp {.numberLines}
 std::string _current_ticks_display(float progress) {
     int nb_ticks = _compute_nb_ticks(progress);
     std::string cur_display = _construct_ticks_display_string(nb_ticks);
@@ -332,7 +328,7 @@ std::string _construct_ticks_display_string(int nb) {
 pending output to the system console. It's necessary to do this when the display is started
 in `display()` and when it's closed in `_finalize_display()`.
 
-```cpp
+```cpp {.numberLines}
 void flush_console() {
 #if !defined(WIN32) && !defined(__WIN32) && !defined(__WIN32__)
           R_FlushConsole();
