@@ -2,12 +2,16 @@
 {-# LANGUAGE OverloadedStrings #-}
 import           Data.Monoid (mappend)
 import           Hakyll
-import Text.Pandoc.Highlighting (Style, haddock, styleToCss)
+import Text.Pandoc.Highlighting (Style, breezeDark, styleToCss)
 import Text.Pandoc.Options      (ReaderOptions (..), WriterOptions (..))
 
 --------------------------------------------------------------------------------
 main :: IO ()
 main = hakyll $ do
+    match "favicon.ico" $ do
+        route   idRoute
+        compile copyFileCompiler
+
     match "images/**" $ do
         route   idRoute
         compile copyFileCompiler
@@ -59,7 +63,7 @@ postCtx =
     defaultContext
 
 pandocCodeStyle :: Style
-pandocCodeStyle = haddock
+pandocCodeStyle = breezeDark
 
 pandocCompiler' :: Compiler (Item String)
 pandocCompiler' =
