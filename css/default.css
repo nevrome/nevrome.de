@@ -6,6 +6,21 @@ pre, code {
   font-size: 1.4rem;
 }
 
+/* center images */
+figure {
+  text-align: center;
+}
+
+figure img {
+  display: block;
+  margin: 0 auto;
+}
+
+figcaption {
+  font-size: 0.9em;
+  color: #c1c1c1;
+}
+
 /* code blocks */
 
 /* code block container */
@@ -155,6 +170,10 @@ h1 {
 }
 
 h2 {
+  font-size: 2.2rem;
+}
+
+h3 {
   font-size: 2rem;
 }
 
