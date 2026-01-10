@@ -1,27 +1,26 @@
 /* custom */
 
+/* pandoc ToC (inline, no <nav>) */
+article > section > ul:first-of-type {
+  font-size: 1.4rem;
+}
+
+/* hide first entry in toc */
+article > section > ul:first-of-type > li:first-child {
+  display: none;
+}
+
+/* hide first h2 ("Introduction") */
+article > section > h2:first-of-type {
+  display: none;
+}
+
+/* code blocks */
 pre, code {
   font-family: "JetBrains Mono", "Fira Code", "Source Code Pro",
                Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   font-size: 1.4rem;
 }
-
-/* center images */
-figure {
-  text-align: center;
-}
-
-figure img {
-  display: block;
-  margin: 0 auto;
-}
-
-figcaption {
-  font-size: 0.9em;
-  color: #c1c1c1;
-}
-
-/* code blocks */
 
 /* code block container */
 div.sourceCode {
@@ -84,6 +83,21 @@ pre.sourceCode:not(.numberSource)::before {
   left: 0;
   width: 3px;
   background: #3a3f44;
+}
+
+/* center images */
+figure {
+  text-align: center;
+}
+
+figure img {
+  display: block;
+  margin: 0 auto;
+}
+
+figcaption {
+  font-size: 1.4rem;
+  color: #c1c1c1;
 }
 
 body {

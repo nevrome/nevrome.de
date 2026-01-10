@@ -4,6 +4,7 @@ import           Data.Monoid (mappend)
 import           Hakyll
 import Text.Pandoc.Highlighting (Style, breezeDark, styleToCss)
 import Text.Pandoc.Options      (ReaderOptions (..), WriterOptions (..))
+import Text.Pandoc
 
 --------------------------------------------------------------------------------
 main :: IO ()
@@ -71,8 +72,16 @@ pandocCompiler' =
   pandocCompilerWith
     defaultHakyllReaderOptions
     defaultHakyllWriterOptions
-      { writerHighlightStyle   = Just pandocCodeStyle
+      { writerHighlightStyle  = Just pandocCodeStyle
+      , writerTableOfContents = True
+      , writerTOCDepth        = 3
+      , writerTemplate        = Just tocTemplate
       }
+
+tocTemplate =
+    either error id $ either (error . show) id $
+    runPure $ runWithDefaultPartials $
+    compileTemplate "" "$toc$\n$body$"
 
 readingTimeField :: String -> Context String
 readingTimeField key =

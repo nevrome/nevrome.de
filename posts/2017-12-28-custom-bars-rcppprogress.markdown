@@ -4,6 +4,8 @@ author: Clemens Schmid and Karl Forner
 origin: https://gallery.rcpp.org/articles/custom-bars-rcppprogress
 ---
 
+## Introduction
+
 [RcppProgress](http://cran.r-project.org/web/packages/RcppProgress/index.html) 
 is a tool to help you monitor the execution time of your C++ code, by
 providing a way to interrupt the execution inside the C++ code, and also to

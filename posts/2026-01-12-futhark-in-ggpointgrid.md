@@ -3,6 +3,8 @@ title: "Integrating Futhark code into an R package"
 author: "Clemens Schmid"
 ---
 
+## Introduction
+
 It's [#DigiArchMaintainathon](https://sslarch.github.io/maintainathon) week and computational archaeologists around the world tackle outstanding housekeeping in their software projects. Part of that is improving documentation, and I wanted to use the opportunity to write about a peculiar setup I've implemented some time last year already: Using the Futhark programming language in an R package. I've [posted about it](https://archaeo.social/@ClemensSchmid/115157603838749836), but a proper write-up has been outstanding for a while.
 
 ## Motivation
@@ -32,10 +34,14 @@ arrange_points_on_grid(
 
 ![Demonstration of the grid arrangement with scattered input points in black, and arranged output points in red.](/images/2026-01-12-futhark-in-ggpointgrid/Rplot.png){width=50% align="center"}
 
-I wanted to use ggpointgrid for a large plot and realized that the performance of my R implementation felt insufficient. A classic situation to bring a compiled language. This time, instead of going for C++, I opted to do this in [Futhark](https://futhark-lang.org), a *statically typed, data-parallel, and purely functional array language* with Haskell-like syntax and solid transpilation to single- and multi-threaded C.
+I wanted to use ggpointgrid for a large plot and realized that the performance of my R implementation felt insufficient. A classic situation to bring in compiled language. This time, instead of going for C++, I opted to do this in [Futhark](https://futhark-lang.org), a *statically typed, data-parallel, and purely functional array language* with Haskell-like syntax and solid transpilation to single- and multi-threaded C (and GPU code via CUDA and OpenCL, but that is less relevant here).
 
-## Setup
+## Tutorial
 
-When building this, I worked my way from the inside to the outside: Futhark -> C -> C++ -> R. I implemented the algorithm in Futhark, and then make the relevant function callable from R. And I wanted to so by writing as little manual boilerplate code as possible. I did use the help of ChatGPT here, especially for the tricky task of bridging between the languages.
+When building this, I worked my way from the inside to the outside: Futhark -> C -> C++ -> R. I tried to write as little manual boilerplate code as possible. And I did use the help of ChatGPT, especially for bridging between the languages and for the optimization of my Furthark code.
+
+I will try to present what I did in the following sections in the form of a brief tutorial. For readers, who would like to follow along, or for myself, when I want to do it again.
 
 ### Futhark
+
+To develop in Futhark I first needed to [install the compiler](https://futhark.readthedocs.io/en/stable/installation.html). 

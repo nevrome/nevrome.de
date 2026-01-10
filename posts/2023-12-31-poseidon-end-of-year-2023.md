@@ -4,6 +4,8 @@ author: Clemens Schmid
 origin: https://blog.poseidon-adna.org/posts/endofyear2023.html
 ---
 
+## Introduction
+
 It's late December and the time of the year when work slows down in my part of the world. For many of us an opportunity to take a break and to look back, contemplating the achievements of the year. I decided to do so as well and write a bit about Poseidon.
 
 What follows is a subjective account of the events in and around the framework in 2023 - each of my colleagues in the core team (Stephan Schiffels, Ayshin Ghalichi, Thiseas C. Lamnidis, Dhananjaya B. A. Mudiyanselage, Wolfgang Haak and I, Clemens Schmid) would probably emphasise different developments in such a write-up. That is in itself an achievement, because it shows how much the tech-stack, domains and services in our little ecosystem have grown this year: beyond the understanding of each of us individually.

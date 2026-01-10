@@ -4,6 +4,8 @@ author: "Clemens Schmid"
 origin: https://blog.poseidon-adna.org/posts/archive_editing_git.html
 ---
 
+## Introduction
+
 At the time of writing, the [Poseidon community archive](https://github.com/poseidon-framework/community-archive) has 14 open pull requests -- most of which were opened by various community members to add new packages to the archive. What certainly is a pleasant development, because it indicates that the archive gets adopted, also comes with technical and administrative challenges. As an editor for the archive I recently had to step up my Git skills to address a particular issue I was facing.
 
 Already multiple times I found myself in the situation that I needed to edit a submission pull request before merging. This arose for example, when a package author prepared a package almost perfectly, but I still wanted to apply some additional minor changes before merging. Or an author or reviewer had struggled with Git, manoeuvred themselves into a predicament, and needed my help to untangle the knot without [starting from scratch](https://xkcd.com/1597). So here is what I came up with to allow me to do that efficiently.
