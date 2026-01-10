@@ -1,13 +1,19 @@
 <article>
     <section class="header">
-        Posted
-        $if(origin)$
-            originally <a href="$origin$">here</a>
-        $endif$
-        on $date$
-        $if(author)$
-            by $author$
-        $endif$
+        <p>
+            Posted
+            $if(origin)$
+                originally <a href="$origin$">here</a>
+            $endif$
+            on $date$
+            $if(author)$
+                by $author$
+            $endif$
+            | ⌛ $readingtime$ min read
+        </p>
+        <p>
+       
+        </p>
     </section>
     <section>
         $body$

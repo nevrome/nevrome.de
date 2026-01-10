@@ -45,8 +45,8 @@ main = hakyll $ do
         compile $ do
             posts <- recentFirst =<< loadAll "posts/*"
             let indexCtx =
-                    listField "posts" postCtx (return posts) `mappend`
-                    defaultContext
+                    listField "posts" postCtx (return posts)
+                    <> defaultContext
 
             getResourceBody
                 >>= applyAsTemplate indexCtx
@@ -59,8 +59,9 @@ main = hakyll $ do
 --------------------------------------------------------------------------------
 postCtx :: Context String
 postCtx =
-    dateField "date" "%B %e, %Y" `mappend`
-    defaultContext
+    dateField "date" "%B %e, %Y"
+    <> readingTimeField "readingtime"
+    <> defaultContext
 
 pandocCodeStyle :: Style
 pandocCodeStyle = breezeDark
@@ -72,3 +73,12 @@ pandocCompiler' =
     defaultHakyllWriterOptions
       { writerHighlightStyle   = Just pandocCodeStyle
       }
+
+readingTimeField :: String -> Context String
+readingTimeField key =
+  field key calculate
+  where
+    -- M. Brysbaert, Journal of Memory and Language (2009) vol 109.
+    -- DOI: 10.1016/j.jml.2019.104047
+    calculate :: Item String -> Compiler String
+    calculate s = pure $ show $ length (words $ itemBody s) `div` 238
