@@ -1,13 +1,89 @@
 /* custom */
 
-pre {
+pre, code {
+  font-family: "JetBrains Mono", "Fira Code", "Source Code Pro",
+               Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   font-size: 1.4rem;
 }
 
+/* code blocks */
+
+/* code block container */
+div.sourceCode {
+  margin: 2.5rem 0;
+}
+
+/* actual code box */
+pre.sourceCode {
+  padding: 1.2rem 1.4rem;
+  font-size: 1.3rem;
+  line-height: 1.55;
+}
+
+@media (min-width: 900px) {
+  /* make code blocks wider */
+  div.sourceCode {
+    margin-left: -10rem !important;
+    margin-right: -10rem !important;
+  }
+  /* and figures */
+  figure {
+    margin-left: -10rem !important;
+    margin-right: -10rem !important;
+  }
+}
+
+pre.sourceCode {
+  /* existing rules already applied */
+  position: relative;
+
+  /* gradient borders */
+  background:
+    /* top border */
+    linear-gradient(
+      to right,
+      #3a3f44 0%,
+      rgba(58, 63, 68, 0.6) 40%,
+      rgba(58, 63, 68, 0) 100%
+    ) top / 100% 2px no-repeat,
+
+    /* bottom border */
+    linear-gradient(
+      to right,
+      #3a3f44 0%,
+      rgba(58, 63, 68, 0.6) 40%,
+      rgba(58, 63, 68, 0) 100%
+    ) bottom / 100% 2px no-repeat;
+}
+
+/* Darken the left gutter for numbered code blocks */
+pre.numberSource {
+  box-shadow: inset 2px 0 0 #3a3f44;
+}
+
+/* close the left edge only for code blocks WITHOUT line numbers */
+pre.sourceCode:not(.numberSource)::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 3px;
+  background: #3a3f44;
+}
+
 body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont,
+               "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
+               "Fira Sans", "Droid Sans", "Helvetica Neue", Arial,
+               sans-serif;
+  font-size: 1.8rem;
+  line-height: 1.7;
+  letter-spacing: 0.02em;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
   background-color: #232629;
-  color: white;
-  font-size: 1.6rem;
+  color: #e6e6e6;
 }
 
 a:link {
@@ -29,7 +105,7 @@ a:hover {
 }
 
 a:active {
-  color: white;
+  color: #e6e6e6;
   background-color: transparent;
   text-decoration: underline;
 }
@@ -48,7 +124,7 @@ body {
 */
 
 header {
-  border-bottom: 0.2rem solid white;
+  border-bottom: 0.2rem solid #e6e6e6;
 }
 
 nav {
@@ -65,7 +141,7 @@ nav a {
 footer {
   margin-top: 3rem;
   padding: 1.2rem 0;
-  border-top: 0.2rem solid white;
+  border-top: 0.2rem solid #e6e6e6;
   font-size: 1.2rem;
   color: #c1c1c1;
 }
@@ -86,7 +162,7 @@ article .header {
 
 .logo a {
   font-weight: bold;
-  color: white;
+  color: #e6e6e6;
   text-decoration: none;
 }
 
@@ -150,7 +226,7 @@ article .header {
 
 @media (min-width: 640px) {
   body {
-    width: 80rem;
+    width: 70rem;
     margin: 0 auto;
     padding: 0;
   }
