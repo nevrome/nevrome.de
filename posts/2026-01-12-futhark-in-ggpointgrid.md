@@ -9,9 +9,9 @@ It's [#DigiArchMaintainathon](https://sslarch.github.io/maintainathon) week and 
 
 ## Motivation
 
-[R](https://www.r-project.org/) is an excellent language for data analysis and vizualisation, not least thanks to the vast number of well-crafted open-source "packages" available to extend it. Simultanously, as a slightly dated interpreted language with an [extreme focus on dynamism](http://adv-r.had.co.nz/Performance.html), R is not particular fast on its own. It does make it comparatively easy, though, to integrate C, C++, and Fortran code, that does not suffer from the same performance constraints. Many R package authors make use of this for performance-critical functions, e.g. by implementing them in C++ and calling them through the convenient mechanisms of the [Rcpp package](https://cran.r-project.org/web/packages/Rcpp/vignettes/Rcpp-package.pdf).
+[R](https://www.r-project.org/) is an excellent language for data analysis and visualisation, not least thanks to the vast number of well-crafted open-source "packages" available to extend it. Simultaneously, as a slightly dated interpreted language with [lazyness and an extreme focus on dynamism](http://adv-r.had.co.nz/Performance.html), R is not particularly fast on its own. It does make it comparatively easy, though, to integrate C, C++, and Fortran code, that does not suffer from the same performance constraints. Many R package authors make use of this for performance-critical functions, e.g. by implementing them in C++ and calling them through the convenient mechanisms of the [Rcpp package](https://cran.r-project.org/web/packages/Rcpp/vignettes/Rcpp-package.pdf).
 
-I personally don't enjoy writing C++ very much -- mostly because of its verbosity and manual memory management -- so I often wondered if I could instead integrate other languages with R. As i) there already is a very convenient path to C++ and thereby to C in R, and ii) C has become the de-facto lingua franca among high level languages through foreign function interfaces and transpilation, this is indeed possible.
+I personally don't enjoy writing C++ very much -- mostly because of its verbosity and resource management semantics -- so I often wondered if I could instead integrate other languages with R. As i) there already is a very convenient path to C and C++, and ii) C has become the de-facto lingua franca among high level languages through foreign function interfaces and transpilation, this is indeed possible.
 
 A specific application for my [ggpointgrid R package](https://github.com/nevrome/ggpointgrid) finally gave me a good enough justification to dive into this. ggpointgrid is an extension for the [ggplot](https://ggplot2.tidyverse.org) data visualization package. It adds functions for regular grid-arrangement of points in scatterplots, fundamentally to avoid overplotting.
 
@@ -44,7 +44,7 @@ I will try to present what I did in the following sections in the form of a brie
 
 ### Futhark
 
-1. [Install the Futhark compiler](https://futhark.readthedocs.io/en/stable/installation.html) to develop code in the language. I'm on an an Arch Linux derivative, so I could install a binary directly from the [AUR](https://aur.archlinux.org/packages/futhark-bin).
+1. [Install the Futhark compiler](https://futhark.readthedocs.io/en/stable/installation.html) `futhark` to develop code in the language. I'm on an Arch Linux derivative, so I could install a binary of version v0.25.29 directly from the [AUR](https://aur.archlinux.org/packages/futhark-bin).
 
 2. Write the Futhark code that covers the functionality you would like to cover in a `.fut` file in the `src/` directory of your R package. In my case this was a function of the following type in the [`arrange.fut`](https://github.com/nevrome/ggpointgrid/blob/1.4.0/src/arrange.fut) source file:
 
@@ -61,15 +61,15 @@ require {
 }
 ```
 
-> If such a file is present, then the `futhark` command line software can install the required depdencies to a `src/lib/` dir with `futhark pkg sync`. The compiler software conveniently comes with the package manager build in.
+> If such a file is present, then the `futhark` command line software can install the required dependencies to a `src/lib/` dir with `futhark pkg sync`. The compiler software conveniently comes with the package manager build in.
 
-3. Use the compiler to translate the Futhark code to C. The command line tool supports two relevant interfaces for this usecase: `futhark c` and `furthark multicore` (besides `futhark cuda`, `opencl`, `pyopencl`, `python`, `wasm` and `wasm-multicore`, which are all available in version 0.25.29.). The generated multicore code is currently only compatible with Unix operating systems. To not exclude Windows users later on, we here choose the the simple sequential `c` output. We can then transpile our code file like this:
+3. Use the compiler to translate the Futhark code to C. The command line tool supports two relevant interfaces for this use case: `futhark c` and `furthark multicore` (besides `futhark cuda`, `opencl`, `pyopencl`, `python`, `wasm` and `wasm-multicore`, which are all available in version 0.25.29.). The generated multicore code is currently only compatible with Unix operating systems ([because of a dependency on pthreads](https://futhark.readthedocs.io/en/latest/man/futhark-multicore.html)). To not exclude Windows users later on, we here choose the the simple sequential `c` output. We can then transpile our code file like this:
 
 ```bash
 futhark c --library arrange.fut
 ```
 
-> The `--library` flag causes `futhark` to create a C library, instead of an exectutable. For testing purposes we can create an executable, and test the behaviour of our entry point function on the command line. 
+> The `--library` flag causes `futhark` to create a C library, instead of an executable. For testing purposes we can create an executable, and test the behaviour of our entry point function on the command line.
 
 ```bash
 futhark c arrange.fut
@@ -80,7 +80,7 @@ echo [1,2,3,4,5] [1,2,3,4,5] [1,1,1,1] [1,1,1,1] | ./arrange -e arrange_from_coo
 [1.000000000000000f64, 2.000000000000000f64, 3.000000000000000f64, 4.000000000000000f64]
 ```
 
-> This is very useful for debugging throughout the development process. Futhark also comes with powerful profiling and debugging features that are accessible on like this.
+> This is very useful for debugging throughout the development process. Futhark also comes with powerful profiling and debugging features that are easily accessible like this.
 
 > To avoid cluttering your Git repository with unnecessary files, the following addition to your .gitignore file may be sensible at this point:
 
@@ -113,7 +113,7 @@ NULL
 
 > With that being setup and the Rcpp package itself installed, it should be possible to use Rcpp in the package.
 
-6. Write the C++ -> C -> Futhark bridge. This was the most challenging part for me in this process, and I required the help of an LLM to get it right. We need to define a C++ function that takes as input the relevant data types Rcpp introduces to represent R data types in C++ (e.g. `Rcpp::NumericVector`), transforms them to the data types by which Futhark types are represented in C (e.g. `futhark_f64_1d`), calls the C version of the Futhark entry point function with them (here `futhark_entry_arrange_from_coordinates`), and finally transforms its output back to a meaningful Rcpp type. We also have to be careful about memory management.
+6. Write the C++ -> C -> Futhark bridge. This was the most challenging part for me in this process, and I required the help of an LLM to get it right. We need to define a C++ function that takes as input the relevant data types Rcpp introduces to represent R data types in C++ (e.g. `Rcpp::NumericVector`), transforms them to the data types by which Futhark types are represented in C (e.g. `futhark_f64_1d`), calls the C version of the Futhark entry point function with them (here `futhark_entry_arrange_from_coordinates`), and finally transforms its output back to a meaningful Rcpp type. We also have to be careful about memory management. The Futhark runtime requires explicit creation and freeing of contexts and array objects, and if we fail to do so correctly, then we can introduce subtle memory leaks.
 
 > My [`src/futhark_bridge_rcpp.cpp`](https://github.com/nevrome/ggpointgrid/blob/1.4.0/src/futhark_bridge_rcpp.cpp) that may serve as an example, but the details depend on the input and output data types your application requires:
 
@@ -136,7 +136,7 @@ Rcpp::List futhark_entry_arrange_from_coordinates_cpp(
 }
 ```
 
-7. Generate an [`RcppExports.cpp`](https://github.com/nevrome/ggpointgrid/blob/1.4.0/src/RcppExports.cpp) file and an [`RcppExports.R`](https://github.com/nevrome/ggpointgrid/blob/1.4.0/R/RcppExports.R) file with the `Rcpp::compileAttributes()` R function. To call `futhark_entry_arrange_from_coordinates_cpp` from R we need yet another two wrapper functions, one in C++ and one in R. Fortunately Rcpp can generate these automatically for us.
+7. Generate an [`RcppExports.cpp`](https://github.com/nevrome/ggpointgrid/blob/1.4.0/src/RcppExports.cpp) file and an [`RcppExports.R`](https://github.com/nevrome/ggpointgrid/blob/1.4.0/R/RcppExports.R) file with the `Rcpp::compileAttributes()` R function. To call `futhark_entry_arrange_from_coordinates_cpp` from R we need yet another two wrapper functions, one in C++ and one in R. Fortunately Rcpp can generate these automatically for us. `compileAttributes()` must be rerun when the type signature of our entry function changes.
 
 8. Compile the C and C++ code in the package. All components should be there now for compilation. To conveniently trigger this from R you can call `devtools::build()` or `devtools::document()`. The latter handles more additional details, so I would generally recommend to run this. Any mistakes in the previous steps will now lead to failure and must be addressed.
 
@@ -157,7 +157,7 @@ futhark_entry_arrange_from_coordinates_cpp(
 [1] 1 2 3 4
 ```
 
-> For my usecase I wrote a user-friendly wrapper around it in [`R/arrange_on_grid.R`](https://github.com/nevrome/ggpointgrid/blob/1.4.0/R/arrange_on_grid.R), to document it properly, validate inputs and slightly restructure the output for more convenience.
+> For my use case I wrote a user-friendly wrapper around it in [`R/arrange_on_grid.R`](https://github.com/nevrome/ggpointgrid/blob/1.4.0/R/arrange_on_grid.R), to document it properly, validate inputs and slightly restructure the output for more convenience.
 
 This concludes the necessary steps I applied to use Futhark code in an R package. Please let me know if you find anything missing to get things to work.
 
@@ -213,7 +213,7 @@ I did not submit `ggpointgrid` to the R package archive [CRAN](https://cran.r-pr
   See ‘Writing portable packages’ in the ‘Writing R Extensions’ manual.
 ```
 
-When I saw these, I was quick to ask [Troels Henriksen](https://sigkill.dk/), the mastermind behind Futhark, if the output of his transpiler could be tweaked slightly for this particular usecase. While he was rightfully hesitant to make such changes for a single user, he also gave me some helpful background information on what they mean and why he consideres them less severe than they sound. See our exchange here <https://archaeo.social/@ClemensSchmid/115157603838749836>. My understanding is now as follows:
+When I saw these, I was quick to ask [Troels Henriksen](https://sigkill.dk/), the mastermind behind Futhark, if the output of his transpiler could be tweaked slightly for this particular use case. While he was rightfully hesitant to make such changes for a single user, he also gave me some helpful background information on what they mean and why he considers them less severe than they sound. See our exchange here <https://archaeo.social/@ClemensSchmid/115157603838749836>. My understanding is now as follows:
 
 1. **checking pragmas in C/C++ headers and code ... WARNING**: These pragmas in the C code are for disabling warnings in the compilation process. The R WARNING can thus be avoided simply by deleting a section of the generated C code in `arrange.c` (`#ifdef __clang__` to `#endif`). This renders the C compilation output more messy, but doesn't change any functionality either way.
 
@@ -225,6 +225,6 @@ So 1. can be avoided relatively easily and 2. should be only relevant on certain
 
 ## Final words
 
-In the end I did manage to come up with a relatively convenient workflow to integrate Futhark in an R package. It was great fun to figure out the process step by step, and the result is production-ready: I have installed and used the ggpointgrid package a number of times since I made the change and never encountered any issues. I will most likely do this again, when I encounter a clearly constraint bottleneck during R package development.
+In the end I did manage to come up with a relatively convenient workflow to integrate Futhark in an R package. It was great fun to figure out the process step by step, and the result is production-ready: I have installed and used the ggpointgrid package a number of times since I made the change and never encountered any issues. I will most likely do this again, when I encounter a clearly constrained bottleneck during R package development.
 
-Regarding performance, the Futhark solution is in this particular case a bit, but not extremely much faster than my original R implementation. Major cost centers of the core algorithm are sorting and pairwise distance calculation. And for these I could already use very fast functions available through R package dependencies. Using the Furthark multicore C output would speed up things a bit more, but I decided not to use it for the moment. Troels signalled interest to make this output also Windows-compatible eventually, so I have something to look forward to!
+Regarding performance, the Futhark solution is, in this particular case, a bit, but not extremely much faster than my original R implementation. Major cost centers of the core algorithm are sorting and pairwise distance calculation. And for these I could already use very fast functions available through R package dependencies. Using the Furthark multicore C output would speed things up a bit more, but I decided not to use it for the moment. Troels signalled interest in making the multicore output also Windows-compatible eventually, so I have something to look forward to!
