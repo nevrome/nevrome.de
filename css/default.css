@@ -3,6 +3,7 @@
 /* pandoc ToC (inline, no <nav>) */
 article > section > ul:first-of-type {
   font-size: 1.4rem;
+  line-height: 1.8rem;
 }
 
 /* hide first entry in toc */

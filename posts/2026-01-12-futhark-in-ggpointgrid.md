@@ -36,7 +36,7 @@ arrange_points_on_grid(
 
 I wanted to use ggpointgrid for a large plot and perceived the performance of my R implementation insufficient. A classic situation to bring in a compiled language! This time, instead of going for C++, I opted to extend my package with [Futhark](https://futhark-lang.org). That is a *statically typed, data-parallel, and purely functional array language* with Haskell-like syntax and solid transpilation to single- and multi-threaded C code (and other targets, like GPU code via CUDA and OpenCL, but that is less relevant here).
 
-## Tutorial
+## Tutorial: Using Futhark in R
 
 When building this, I worked my way from the inside to the outside: Futhark -> C -> C++ -> R. I tried to write as little manual boilerplate code as possible. And I did use the help of ChatGPT, especially for bridging between the languages and for the optimization of my Furthark code.
 
@@ -142,10 +142,89 @@ Rcpp::List futhark_entry_arrange_from_coordinates_cpp(
 
 ### R
 
-9. Use the Futhark function in your R code. For example, by writing another, user-focused wrapper functions around it.
+9. Use the Futhark function in your R code. It can now be called just like any other R function:
 
-Precise types! 30L
+```r
+futhark_entry_arrange_from_coordinates_cpp(
+    c(1,2,3,4,5), c(1,2,3,4,5), c(1,1,1,1), c(1,1,1,1)
+)
+```
+```txt
+[[1]]
+[1] 1 2 3 4
+
+[[2]]
+[1] 1 2 3 4
+```
+
+> For my usecase I wrote a user-friendly wrapper around it in [`R/arrange_on_grid.R`](https://github.com/nevrome/ggpointgrid/blob/1.4.0/R/arrange_on_grid.R), to document it properly, validate inputs and slightly restructure the output for more convenience.
+
+This concludes the necessary steps I applied to use Futhark code in an R package. Please let me know if you find anything missing to get things to work.
+
+## Cleaning up
+
+In this process we added a number of files to the R package that are unusual and need to be ignored in the package's automatic build process. We have to add them to the [`.Rbuildignore`](https://github.com/nevrome/ggpointgrid/blob/1.4.0/.Rbuildignore) file:
+
+```txt
+^src/arrange$
+^src/arrange\.fut$
+^src/arrange\.json$
+^src/futhark\.pkg$
+```
+
+If you share this project on GitHub and want GitHub's [linguist](https://github.com/github-linguist/linguist) to generate a meaningful language breakdown graph, then you can add a [`.gitattributes`](https://github.com/nevrome/ggpointgrid/blob/1.4.0/.gitattributes) file with instructions to ignore the automatically generated C and C++ code:
+
+```txt
+*.c linguist-vendored
+*.h linguist-vendored
+src/RcppExports.cpp linguist-vendored
+```
+
+Otherwise the thousands of lines of generated C will dominate the graph.
+
+![GitHub language graph of ggpointgrid v1.4.0 with the .gitattributes set as above.](/images/2026-01-12-futhark-in-ggpointgrid/language_graph.png){width=60%}
 
 ## R package checks
 
-## Final remarks
+I did not submit `ggpointgrid` to the R package archive [CRAN](https://cran.r-project.org/), but I still made sure to address ERRORs, WARNINGS, and NOTES revealed by `devtools::check()`. There are three, though, that emerge directly from the integration of Futhark, which are hard to avoid:
+
+```txt
+❯ checking pragmas in C/C++ headers and code ... WARNING
+  File which contains non-portable pragma(s)
+    ‘src/arrange.c’
+  File which contains pragma(s) suppressing diagnostics:
+    ‘src/arrange.c’
+
+❯ checking compilation flags used ... NOTE
+  Compilation used the following non-portable flag(s):
+    ‘-Werror=format-security’ ‘-Wformat’ ‘-Wp,-D_FORTIFY_SOURCE=3’
+    ‘-Wp,-D_GLIBCXX_ASSERTIONS’ ‘-march=x86-64’
+    ‘-mno-omit-leaf-frame-pointer’
+
+❯ checking compiled code ... NOTE
+  File ‘ggpointgrid/libs/ggpointgrid.so’:
+    Found ‘stderr’, possibly from ‘stderr’ (C)
+      Object: ‘arrange.o’
+  
+  Compiled code should not call entry points which might terminate R nor
+  write to stdout/stderr instead of to the console, nor use Fortran I/O
+  nor system RNGs nor [v]sprintf.
+  
+  See ‘Writing portable packages’ in the ‘Writing R Extensions’ manual.
+```
+
+When I saw these, I was quick to ask [Troels Henriksen](https://sigkill.dk/), the mastermind behind Futhark, if the output of his transpiler could be tweaked slightly for this particular usecase. While he was rightfully hesitant to make such changes for a single user, he also gave me some helpful background information on what they mean and why he consideres them less severe than they sound. See our exchange here <https://archaeo.social/@ClemensSchmid/115157603838749836>. My understanding is now as follows:
+
+1. **checking pragmas in C/C++ headers and code ... WARNING**: These pragmas in the C code are for disabling warnings in the compilation process. The R WARNING can thus be avoided simply by deleting a section of the generated C code in `arrange.c` (`#ifdef __clang__` to `#endif`). This renders the C compilation output more messy, but doesn't change any functionality either way.
+
+2. **checking compilation flags used  ... NOTE**: These flags were set when R was built for my system, not the package. This NOTE should only pop up on my computer.
+
+3. **checking compiled code ... NOTE**: Writing to `stderr` only happens in code paths that a user of the entry point function would not reach. I'm not sure if they could be removed easily, but they should not have a detrimental effect on R's functionality.
+
+So 1. can be avoided relatively easily and 2. should be only relevant on certain systems. Only 3. may be an issue. Whether a CRAN submission would be allowed with this NOTE is unclear, but I think it would be worth a try.
+
+## Final words
+
+In the end I did manage to come up with a relatively convenient workflow to integrate Futhark in an R package. It was great fun to figure out the process step by step, and the result is production-ready: I have installed and used the ggpointgrid package a number of times since I made the change and never encountered any issues. I will most likely do this again, when I encounter a clearly constraint bottleneck during R package development.
+
+Regarding performance, the Futhark solution is in this particular case a bit, but not extremely much faster than my original R implementation. Major cost centers of the core algorithm are sorting and pairwise distance calculation. And for these I could already use very fast functions available through R package dependencies. Using the Furthark multicore C output would speed up things a bit more, but I decided not to use it for the moment. Troels signalled interest to make this output also Windows-compatible eventually, so I have something to look forward to!
