@@ -5,7 +5,7 @@ author: "Clemens Schmid"
 
 ## Introduction
 
-It's [#DigiArchMaintainathon](https://sslarch.github.io/maintainathon) week and computational archaeologists around the world tackle outstanding housekeeping in their software projects. I wanted to use the opportunity to document a peculiar setup I've implemented last year: Using the Futhark programming language in an R package. I've [posted about it](https://archaeo.social/@ClemensSchmid/115157603838749836) back then, but a proper write-up has been outstanding.
+It's [#DigiArchMaintainathon](https://sslarch.github.io/maintainathon) week and computational archaeologists around the world are tackling outstanding housekeeping in their software projects. I wanted to use the opportunity to document a peculiar setup I've implemented last year: Using the Futhark programming language in an R package. I've [posted about it](https://archaeo.social/@ClemensSchmid/115157603838749836) back then, but a proper write-up has been outstanding.
 
 ## Motivation
 

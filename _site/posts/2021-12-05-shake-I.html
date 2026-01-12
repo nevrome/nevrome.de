@@ -32,23 +32,32 @@
             <h1>Workflow management with Haskell Shake I: Discovery</h1>
             <article>
     <section class="header">
-        Posted
-        
-            originally <a href="https://medium.com/@nevrome/my-workflow-automation-journey-discovering-shake-haskell-5c270b93ff2b">here</a>
-        
-        on December  5, 2021
-        
-            by Clemens Schmid
-        
+        <p>
+            Posted
+            
+                originally <a href="https://medium.com/@nevrome/my-workflow-automation-journey-discovering-shake-haskell-5c270b93ff2b">here</a>
+            
+            on December  5, 2021
+            
+                by Clemens Schmid
+            
+            | ⌛ 3 min read
+        </p>
     </section>
     <section>
-        <p><em>This is part I of a two part blog post. See <a href="../posts/2021-12-05-shake-II.html">part II</a> for a little showcase of Shake.</em></p>
+        <ul>
+<li><a href="#introduction" id="toc-introduction">Introduction</a></li>
+<li><a href="#my-user-story" id="toc-my-user-story">My user story</a></li>
+<li><a href="#why-shake-of-all-things" id="toc-why-shake-of-all-things">Why Shake, of all things?</a></li>
+</ul>
+<h2 id="introduction">Introduction</h2>
+<p><em>This is part I of a two part blog post. See <a href="../posts/2021-12-05-shake-II.html">part II</a> for a little showcase of Shake.</em></p>
 <p>Workflow management, so software to organize and run data analysis scripts, is one of these fortunate domains, where dozens of open source solutions are competing for our attention. There’s probably something for every taste (see e.g. the extensive list <a href="https://github.com/pditommaso/awesome-pipeline">here</a>), and many of these projects are actively maintained or at least comparatively easy to resurrect. This post is an attempt to describe my personal journey for a tool that fits me, in the hope to motivate you to go searching as well.</p>
 <h2 id="my-user-story">My user story</h2>
 <p>My PhD research is located somewhere between Bioinformatics and Archaeoinformatics (yep — that’s <a href="https://caa-international.org/">a thing</a>) and I work with large and high-dimensional datasets. Not really Big data, but big enough to require a high performance computing environment to run analyses in reasonable time. Space, time and (ancient)DNA meet in my data, so my code necessarily relies on a variety of software libraries from different domains. In the last two years I piled scripts on top of scripts and thus created a complex network of interlinked code for data preparation, analysis and visualization.</p>
 <p>This is my personal user story. It eventually brought me to a point where I realized that I have to introduce a more sophisticated system for dependency management and workflow automation. The former is especially important for reproducibility, and the latter to propagate changes, so to always maintain an up-to-date version of derived data products and plots. I needed a system that defines, runs and monitors a pipeline of code across different interacting scripts.</p>
 <p>As I share these challenges with a large number of people working professionally with computers, there are many excellent solutions for exactly these challenges out there. I just had to pick what fits me, my tasks and my interests. So I decided to follow my gut feelings and ended up with the containerization solutions docker and singularity to encapsulate my development environment (which will only be mentioned in passing here), and the build system <a href="https://shakebuild.com/"><strong>Shake</strong></a> to orchestrate my analysis pipeline.</p>
-<h3 id="why-shake-of-all-things">Why Shake, of all things?</h3>
+<h2 id="why-shake-of-all-things">Why Shake, of all things?</h2>
 <p>The first options l considered for pipeline management were <a href="https://www.nextflow.io/"><strong>Nextflow</strong></a> and <a href="https://snakemake.readthedocs.io/en/stable/"><strong>Snakemake</strong></a>. Both are very popular among my colleagues in bioinformatics. At our department there seems to be an even divide between strong fans of the former and the latter. I personally did not want to deal neither with <a href="http://groovy-lang.org/documentation.html">Groovy</a> nor with Python, though, which nextflow and snakemake respectively use as an underlying configuration language. Ideally I wanted to write the pipeline definition in a language and framework I’m already familiar with. That’s not (only) laziness. By working in either R or Haskell, with which I feel most comfortable, I could more easily leverage the power of these languages.</p>
 <p>So then I gave some scrutiny to <a href="https://books.ropensci.org/targets/walkthrough.html"><strong>targets</strong></a>, an implementation of a pipelining tool in R. This might have worked for me, but it gave me the impression to be too focused on workflows within R. R is certainly an important component of my personal tech stack right now, but I wanted to be prepared for whatever the future might bring. I also — and that’s very shallow— didn’t like target’s syntax from what I saw in the example code, where every computation in a pipeline got crammed into a single list object.</p>
 <p>At this point I realized I would really like to solve this in Haskell, as the language became something of a personal passion anyway. A functional, strongly typed language should also — at least in theory — be a good fit to formalize building rules. I did some research and came across three Haskell tools that seem to offer workflow management: <a href="https://github.com/tweag/funflow"><strong>Funflow</strong></a>, <a href="https://github.com/tweag/porcupine"><strong>Porcupine</strong></a> and <a href="https://github.com/PapenfussLab/bioshake"><strong>Bioshake</strong></a>. Instead of diving into them one after the other, I took a step back and asked the excellent Haskell community on reddit for advice: <a href="https://old.reddit.com/r/haskell/comments/q0esys/experiences_with_workflow_managers_implemented_in/">Experiences with workflow managers implemented in Haskell (funflow, porcupine, bioshake, ?)</a></p>
@@ -61,6 +70,21 @@
         </main>
 
         <footer>
+            <div class="logo">
+                <a href="https://orcid.org/0000-0003-3448-5715" aria-label="View ORCID record">
+                    <img src="../images/ORCID-iD_icon_BW_16x16.png" alt="ORCID iD" />
+                    0000-0003-3448-5715 ← Clemens
+                </a>
+            </div>
+            <nav>
+                <a href="../">Other posts</a>
+                <a href="https://github.com/nevrome/nevrome.de">GitHub</a>
+                <!--
+                <a href="/about.html">About</a>
+                <a href="/contact.html">Contact</a>
+                <a href="/archive.html">Archive</a>
+                -->
+            </nav>
             Site generated by
             <a href="http://jaspervdj.be/hakyll">Hakyll</a>
         </footer>

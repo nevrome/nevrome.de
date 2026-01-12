@@ -32,19 +32,31 @@
             <h1>Workflow management with Haskell Shake II: Showcase</h1>
             <article>
     <section class="header">
-        Posted
-        
-            originally <a href="https://medium.com/@nevrome/my-workflow-automation-journey-discovering-shake-haskell-5c270b93ff2b">here</a>
-        
-        on December  5, 2021
-        
-            by Clemens Schmid
-        
+        <p>
+            Posted
+            
+                originally <a href="https://medium.com/@nevrome/my-workflow-automation-journey-discovering-shake-haskell-5c270b93ff2b">here</a>
+            
+            on December  5, 2021
+            
+                by Clemens Schmid
+            
+            | ⌛ 14 min read
+        </p>
     </section>
     <section>
-        <p><em>This is part II of a two part blog post. See <a href="../posts/2021-12-05-shake-I.html">part I</a> for the story how I discovered Shake.</em></p>
+        <ul>
+<li><a href="#introduction" id="toc-introduction">Introduction</a></li>
+<li><a href="#a-simple-shakefile" id="toc-a-simple-shakefile">A simple Shakefile</a></li>
+<li><a href="#adjustments-for-my-needs-and-convenience" id="toc-adjustments-for-my-needs-and-convenience">Adjustments for my needs and convenience</a></li>
+<li><a href="#rules-that-dont-hurt-the-eyes" id="toc-rules-that-dont-hurt-the-eyes">Rules that don’t hurt the eyes</a></li>
+<li><a href="#custom-run-commands-and-environments" id="toc-custom-run-commands-and-environments">Custom run commands and environments</a></li>
+<li><a href="#shake-options" id="toc-shake-options">Shake options</a></li>
+<li><a href="#conclusion" id="toc-conclusion">Conclusion</a></li>
+</ul>
+<h2 id="introduction">Introduction</h2>
+<p><em>This is part II of a two part blog post. See <a href="../posts/2021-12-05-shake-I.html">part I</a> for the story how I discovered Shake.</em></p>
 <p><em>GitHub repository with the code for this showcase: <a href="https://github.com/nevrome/ShakeExperiment" class="uri">https://github.com/nevrome/ShakeExperiment</a></em></p>
-<h2 id="using-shake">Using Shake</h2>
 <p><a href="https://shakebuild.com/">Shake</a> is a build system like <a href="https://www.gnu.org/software/make/">make</a>, so software to organize the compilation of large software projects. That’s why its <a href="https://shakebuild.com/manual">manual</a> fully focuses on building C code. In my perception building software and managing a data analysis pipeline are very similar tasks, though: in the end you want to run every script necessary to get a certain product, and it does not matter much, if that product are crosscompiled executables or a set of plots.</p>
 <p>The Shake homepage <a href="https://shakebuild.com/why">does a good</a> job in listing the advantages it has over its competitors. Here are three aspects I find particularly appealing about it:</p>
 <ul>
@@ -53,7 +65,7 @@
 <li><strong>Configurable</strong>: Shake is a library with a simple interface, <a href="https://hackage.haskell.org/package/shake-0.19.6/docs/Development-Shake.html">extensive documentation</a> and useful <a href="https://hackage.haskell.org/package/shake-0.19.6/docs/Development-Shake.html#g:5">configuration options</a>. It boils down to idiomatic Haskell code, fully adjustable to your needs.</li>
 </ul>
 <p>To illustrate how it works, I want to present a basic example in the following section (<a href="https://github.com/nevrome/ShakeExperiment">Code on GitHub</a>).</p>
-<h3 id="a-simple-shakefile">A simple Shakefile</h3>
+<h2 id="a-simple-shakefile">A simple Shakefile</h2>
 <p>Let’s imagine a workflow like this:</p>
 <pre><code>raw_input.csv --&gt; A.R -
                         \
@@ -138,7 +150,7 @@
 <img src="../images/2021-12-05-shake-II/1_9JOrZ76udsvr1kKBippbYg.webp" style="width:100.0%" alt="3D.png: Output of our example pipeline after a change in B.R" />
 <figcaption aria-hidden="true">3D.png: Output of our example pipeline after a change in B.R</figcaption>
 </figure>
-<h3 id="adjustments-for-my-needs-and-convenience">Adjustments for my needs and convenience</h3>
+<h2 id="adjustments-for-my-needs-and-convenience">Adjustments for my needs and convenience</h2>
 <p>Our very simple Shake script is already fulfilling its basic purpose. The pipeline is fully defined and runs, when we execute the Shakefile.</p>
 <p>But some more advanced elements I personally need for my actual worflows are missing (e.g. support for singularity and our in-house HPC system). Shake itself also has some neat configuration options to explore. And finally the versatility of Haskell should allow to rewrite the core pipeline mechanics in shorter and clearer syntax. So: We have some room for improvement, and I wanted to dive deeper into that.</p>
 <p>Here’s a refactored version of the script above:</p>
@@ -223,7 +235,7 @@
 <span id="cb13-3"><a href="#cb13-3"></a> <span class="co"># install the necessary R packages</span></span>
 <span id="cb13-4"><a href="#cb13-4"></a> R -- slave -e <span class="st">'install.packages(“MASS”)'</span></span></code></pre></div>
 <p>This simple configuration file describes a reproducible, self-sufficient computational environment with R v4.1.0 and only one additional R package (MASS). Singularity is very <a href="https://sylabs.io/guides/2.6/user-guide/singularity_and_docker.html">well integrated with docker</a> – here I build directly on top of a <a href="https://www.rocker-project.org/">rocker</a> image. As I don’t want to get lost in singularity here, I’ll leave it at that, and instead jump right into the new Shakefile.</p>
-<h3 id="rules-that-dont-hurt-the-eyes"><strong>Rules that don’t hurt the eyes</strong></h3>
+<h2 id="rules-that-dont-hurt-the-eyes">Rules that don’t hurt the eyes</h2>
 <p>I think the build rule creation syntax in Shake is an eyesore – as you can see in the first Shakefile above. For my new Shakefile I wrote a wrapper, that expresses rules more clearly.</p>
 <p>Let’s start with the new operator <code>%$</code>, which encapsulates Shake’s <code>%&gt;</code>:</p>
 <div class="sourceCode" id="cb14"><pre class="sourceCode numberSource haskell numberLines"><code class="sourceCode haskell"><span id="cb14-1"><a href="#cb14-1"></a><span class="ot">(%$) ::</span> <span class="dt">FilePath</span> <span class="ot">-&gt;</span> ([<span class="dt">FilePath</span>], [<span class="dt">FilePath</span>]) <span class="ot">-&gt;</span> <span class="dt">Rules</span> ()</span>
@@ -247,7 +259,7 @@
 <span id="cb18-4"><a href="#cb18-4"></a>    cmd_ <span class="st">&quot;Rscript&quot;</span> script</span></code></pre></div>
 <p>becomes a much more pleasant</p>
 <div class="sourceCode" id="cb19"><pre class="sourceCode numberSource haskell numberLines"><code class="sourceCode haskell"><span id="cb19-1"><a href="#cb19-1"></a>scripts <span class="st">&quot;B.R&quot;</span> <span class="op">%$</span> [ ] <span class="op">--&gt;</span> [intermediate <span class="st">&quot;colours.RData&quot;</span>]</span></code></pre></div>
-<h3 id="custom-run-commands-and-environments"><strong>Custom run commands and environments</strong></h3>
+<h2 id="custom-run-commands-and-environments">Custom run commands and environments</h2>
 <p>Now that the rules look nicer, we can turn towards the system environment. As described above, I have pretty specific requirements how exactly my scripts should be run: Through our high performance computing setting and through a singularity container.</p>
 <pre><code>HPC runs Singularity runs Rscript runs my scripts</code></pre>
 <p>To express this, I added the function <code>relevantRunCommand</code>, that does just that: compiling a relevant run command – here depending on the file extension of the respective script.</p>
@@ -272,7 +284,7 @@
 <p>For my real production code, the settings data type is a bit more complex and features additional elements – for example different cluster submission commands for different computing power requirements.</p>
 <p>You see that the building of the singularity image itself is not part of the pipeline. Building it requires <code>sudo</code> permissions, and – more fundamentally –building it every time would undermine reproducibility: The recipe in the <em>.def</em> file requires multiple different online servers to be available and to always provide specific versions of certain software dependencies. In a way, the singularity image should be considered a stable input data file, so nothing to be produced on the fly.</p>
 <p>This approach to environment management and configuration is bare-bones. I like the flexibility that comes with it, but I also see the appeal of a higher level of abstraction as provided by e.g. <a href="https://www.nextflow.io/docs/latest/executor.html">nextflow’s executors</a>.</p>
-<h3 id="shake-options">Shake options</h3>
+<h2 id="shake-options">Shake options</h2>
 <p>Shake itself comes with a number of easily configurable options how it should run. They are set in the record type <code>shakeOptions</code>, as described <a href="https://hackage.haskell.org/package/shake-0.19.6/docs/Development-Shake.html#g:5">here</a>. These are the ones I modified for this example:</p>
 <div class="sourceCode" id="cb23"><pre class="sourceCode numberSource haskell numberLines"><code class="sourceCode haskell"><span id="cb23-1"><a href="#cb23-1"></a>shakeOptions {</span>
 <span id="cb23-2"><a href="#cb23-2"></a>  shakeFiles     <span class="ot">=</span> <span class="st">&quot;_build&quot;</span></span>
@@ -307,6 +319,21 @@
         </main>
 
         <footer>
+            <div class="logo">
+                <a href="https://orcid.org/0000-0003-3448-5715" aria-label="View ORCID record">
+                    <img src="../images/ORCID-iD_icon_BW_16x16.png" alt="ORCID iD" />
+                    0000-0003-3448-5715 ← Clemens
+                </a>
+            </div>
+            <nav>
+                <a href="../">Other posts</a>
+                <a href="https://github.com/nevrome/nevrome.de">GitHub</a>
+                <!--
+                <a href="/about.html">About</a>
+                <a href="/contact.html">Contact</a>
+                <a href="/archive.html">Archive</a>
+                -->
+            </nav>
             Site generated by
             <a href="http://jaspervdj.be/hakyll">Hakyll</a>
         </footer>

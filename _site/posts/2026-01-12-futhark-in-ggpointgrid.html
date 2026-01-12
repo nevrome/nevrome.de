@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Clemens' blog - Integrating Futhark code into an R package</title>
+        <link rel="stylesheet" href="../css/default.css" />
+        <link rel="stylesheet" href="../css/syntax.css" />
+    </head>
+    <body>
+        <header>
+            <div class="logo">
+                <a href="https://orcid.org/0000-0003-3448-5715" aria-label="View ORCID record">
+                    <img src="../images/ORCID-iD_icon_BW_16x16.png" alt="ORCID iD" />
+                    0000-0003-3448-5715 ← Clemens
+                </a>
+            </div>
+            
+            <nav>
+                <a href="../">Other posts</a>
+                <a href="https://github.com/nevrome/nevrome.de">GitHub</a>
+                <!--
+                <a href="/about.html">About</a>
+                <a href="/contact.html">Contact</a>
+                <a href="/archive.html">Archive</a>
+                -->
+            </nav>
+        </header>
+
+        <main role="main">
+            <h1>Integrating Futhark code into an R package</h1>
+            <article>
+    <section class="header">
+        <p>
+            Posted
+            
+            on January 12, 2026
+            
+                by Clemens Schmid
+            
+            | ⌛ 13 min read
+        </p>
+    </section>
+    <section>
+        <ul>
+<li><a href="#introduction" id="toc-introduction">Introduction</a></li>
+<li><a href="#motivation" id="toc-motivation">Motivation</a></li>
+<li><a href="#tutorial-using-futhark-in-r" id="toc-tutorial-using-futhark-in-r">Tutorial: Using Futhark in R</a>
+<ul>
+<li><a href="#futhark" id="toc-futhark">Futhark</a></li>
+<li><a href="#c" id="toc-c">C</a></li>
+<li><a href="#c-1" id="toc-c-1">C++</a></li>
+<li><a href="#r" id="toc-r">R</a></li>
+</ul></li>
+<li><a href="#cleaning-up" id="toc-cleaning-up">Cleaning up</a></li>
+<li><a href="#r-package-checks" id="toc-r-package-checks">R package checks</a></li>
+<li><a href="#final-words" id="toc-final-words">Final words</a></li>
+</ul>
+<h2 id="introduction">Introduction</h2>
+<p>It’s <a href="https://sslarch.github.io/maintainathon">#DigiArchMaintainathon</a> week and computational archaeologists around the world are tackling outstanding housekeeping in their software projects. I wanted to use the opportunity to document a peculiar setup I’ve implemented last year: Using the Futhark programming language in an R package. I’ve <a href="https://archaeo.social/@ClemensSchmid/115157603838749836">posted about it</a> back then, but a proper write-up has been outstanding.</p>
+<h2 id="motivation">Motivation</h2>
+<p><a href="https://www.r-project.org/">R</a> is an excellent language for data analysis and visualisation, not least thanks to the vast number of open-source <em>packages</em> available to extend it. Simultaneously, as a slightly dated interpreted language with <a href="http://adv-r.had.co.nz/Performance.html">lazyness and an extreme focus on dynamism</a>, R is not particularly fast on its own. It does make it comparatively easy, though, to integrate C, C++, and Fortran code, that does not suffer from the same performance constraints. Many R package authors make use of this for performance-critical functions, e.g. by implementing them in C++ and calling them through the convenient mechanisms of the <a href="https://cran.r-project.org/web/packages/Rcpp/vignettes/Rcpp-package.pdf">Rcpp package</a>.</p>
+<p>I personally don’t enjoy writing C++, mostly because of its verbosity and resource management semantics. So I often wondered if I could instead integrate other languages with R. As there already is a very convenient path to C, and C has become the de-facto lingua franca among high level languages through foreign function interfaces and transpilation, this is indeed possible.</p>
+<p>A computationally intensive application for my <a href="https://github.com/nevrome/ggpointgrid">ggpointgrid R package</a> finally gave me a good enough reason to dive into this. ggpointgrid is an extension for the <a href="https://ggplot2.tidyverse.org">ggplot</a> package. It adds functions for regular grid-arrangement of points in scatterplots, fundamentally to avoid overplotting.</p>
+<figure>
+<img src="../images/2026-01-12-futhark-in-ggpointgrid/Rplot01.png" style="width:100.0%" alt="Demonstration of ggpointgrid’s regular grid arrangement with geom_pointgrid(), compared to a normal scatterplot with geom_point() and randomized point locations with geom_jitter(). geom_pointgrid() reliably shows all observations, and positions them close to where they should be in x-y-space." />
+<figcaption aria-hidden="true">Demonstration of ggpointgrid’s regular grid arrangement with <code>geom_pointgrid()</code>, compared to a normal scatterplot with <code>geom_point()</code> and randomized point locations with <code>geom_jitter()</code>. <code>geom_pointgrid()</code> reliably shows all observations, and positions them close to where they should be in x-y-space.</figcaption>
+</figure>
+<p>Its core algorithm is accessible through the R function <code>arrange_points_on_grid()</code> and implements a greedy search loop, that assigns input positions to the closest free grid positions. It is computationally expensive for large input datasets and grids, yet still relatively concise with simple in- and outputs.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">arrange_points_on_grid</span>(</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Numeric matrix. Grid coordinates to which the points should be mapped.</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 2-column matrix with x-axis coordinates in the first, and y-axis coordinates</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="co"># in the second column.</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    grid_xy,</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Numeric matrix. Point (observation) coordinates that should be mapped to the grid.</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 2-column matrix with x-axis coordinates in the first, and y-axis coordinates in</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># the second column.</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    pts_xy</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
+<figure>
+<img src="../images/2026-01-12-futhark-in-ggpointgrid/Rplot.png" style="width:50.0%" data-align="center" alt="Demonstration of the grid arrangement with scattered input points in black, and arranged output points in red." />
+<figcaption aria-hidden="true">Demonstration of the grid arrangement with scattered input points in black, and arranged output points in red.</figcaption>
+</figure>
+<p>I wanted to use ggpointgrid for a large plot and perceived the performance of my old R implementation of this algorithm insufficient. A classic situation to bring in a compiled language! This time, instead of going for C++, I opted to extend my package with <a href="https://futhark-lang.org">Futhark</a>. That is a <em>statically typed, data-parallel, and purely functional array language</em> with Haskell-like syntax and solid transpilation to single- and multi-threaded C code (and other targets, like GPU code via CUDA and OpenCL).</p>
+<p>ggpointgrid v1.4.0 features a complete, working product of this experiment. I will try to present what I did in the following sections in the form of a brief tutorial. For readers, who would like to follow along, or for myself, when I want to do it again. <em>Disclaimer:</em> I did use the help of ChatGPT, especially for bridging between the languages and for the optimization of my Furthark code.</p>
+<h2 id="tutorial-using-futhark-in-r">Tutorial: Using Futhark in R</h2>
+<p>I assume you have an R package where you’re already actively developing and now want to outsource specific functionality to Futhark. We are going to work our way from the inside to the outside: Futhark -&gt; C -&gt; C++ -&gt; R.</p>
+<h3 id="futhark">Futhark</h3>
+<ol type="1">
+<li><p><a href="https://futhark.readthedocs.io/en/stable/installation.html">Install the Futhark compiler</a> <code>futhark</code> to develop code in the language. I’m on an Arch Linux derivative, so I could install a binary of version v0.25.29 directly from the <a href="https://aur.archlinux.org/packages/futhark-bin">AUR</a>.</p></li>
+<li><p>Write the Futhark code that covers the functionality you would like to include in a <code>.fut</code> file in the <code>src/</code> directory of your R package. A good starting point on how to use the Futhark language is the open online book <a href="https://futhark-book.readthedocs.io/en/latest/">Parallel Programming in Futhark</a>. For my use case I wrote a function <code>arrange_from_coordinates</code> with the following type signature in a source file <a href="https://github.com/nevrome/ggpointgrid/blob/1.4.0/src/arrange.fut"><code>src/arrange.fut</code></a>:</p></li>
+</ol>
+<div class="sourceCode" id="cb2"><pre class="sourceCode txt"><code class="sourceCode default"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>entry arrange_from_coordinates (grid_xs: []f64) (grid_ys: []f64) (pts_x: []f64)  (pts_y: []f64):</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>                               ([]f64, []f64)</span></code></pre></div>
+<blockquote>
+<p>I will not dive into the details of the implementation here, but instead highlight two observations:</p>
+</blockquote>
+<blockquote>
+<ol type="i">
+<li>Futhark is a pure functional language, so a language without side effects or I/O. The only way to communicate with the outside world is either through the <code>main</code>, or another <code>entry</code> point function. So while my source file includes a number of additional helper functions, there is only one entry point. We will see below how this entry function can be called from C, C++ and eventually R.</li>
+<li>Futhark itself has an ecosystem of software libraries that can be installed and imported directly from GitHub with the compiler executable <code>futhark</code>. So the compiler software conveniently comes with a package manager build in! I made use of a dependency for a faster sorting algorithm (<code>import "lib/github.com/diku-dk/sorts/radix_sort"</code>). For that it needs to be registered in a <a href="https://github.com/nevrome/ggpointgrid/blob/1.4.0/src/futhark.pkg"><code>futhark.pkg</code></a> file in the <code>src/</code> directory, which can be automatically created by calling <code>futhark pkg add github.com/diku-dk/sorts</code>.</li>
+</ol>
+</blockquote>
+<div class="sourceCode" id="cb3"><pre class="sourceCode txt"><code class="sourceCode default"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>require {</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  github.com/diku-dk/sorts 0.6.0 #f448cd990c86c566715915a8fc4182c8c2ff5400</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<blockquote>
+<blockquote>
+<p>If such a file is present, then the <code>futhark</code> command line software can install the required dependencies to a <code>src/lib/</code> directory with <code>futhark pkg sync</code>.</p>
+</blockquote>
+</blockquote>
+<ol start="3" type="1">
+<li>Use the compiler to translate the Futhark code to C. The command line tool supports two relevant interfaces for this use case: <code>futhark c</code> and <code>furthark multicore</code> (besides <code>futhark cuda</code>, <code>opencl</code>, <code>pyopencl</code>, <code>python</code>, <code>wasm</code> and <code>wasm-multicore</code>, which are all available in version 0.25.29.). The generated multicore code is currently only compatible with Unix operating systems (<a href="https://futhark.readthedocs.io/en/latest/man/futhark-multicore.html">because of a dependency on pthreads</a>). To not exclude Windows users later on, I chose the the simple sequential <code>c</code> output. We can then transpile our code file like this:</li>
+</ol>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">futhark</span> c <span class="at">--library</span> arrange.fut</span></code></pre></div>
+<blockquote>
+<p>The <code>--library</code> flag causes <code>futhark</code> to create a C library, instead of an executable. For testing purposes we can create the executable, and test the behaviour of our entry point function on the command line.</p>
+</blockquote>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">futhark</span> c arrange.fut</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="pp">[</span><span class="ss">1,2,3,4,5</span><span class="pp">]</span> <span class="pp">[</span><span class="ss">1,2,3,4,5</span><span class="pp">]</span> <span class="pp">[</span><span class="ss">1,1,1,1</span><span class="pp">]</span> <span class="pp">[</span><span class="ss">1,1,1,1</span><span class="pp">]</span> <span class="kw">|</span> <span class="ex">./arrange</span> <span class="at">-e</span> arrange_from_coordinates</span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode txt"><code class="sourceCode default"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>[1.000000000000000f64, 2.000000000000000f64, 3.000000000000000f64, 4.000000000000000f64]</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>[1.000000000000000f64, 2.000000000000000f64, 3.000000000000000f64, 4.000000000000000f64]</span></code></pre></div>
+<blockquote>
+<p>This is very useful for debugging throughout the development process. Futhark also comes with powerful profiling features that are easily accessible like this.</p>
+</blockquote>
+<blockquote>
+<p>To avoid cluttering your Git repository with unnecessary files, the following addition to your .gitignore file may be sensible at this point:</p>
+</blockquote>
+<div class="sourceCode" id="cb7"><pre class="sourceCode txt"><code class="sourceCode default"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a># files generated by Futhark and gcc</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>*.o</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>*.so</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>src/lib/</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>src/arrange</span></code></pre></div>
+<h3 id="c">C</h3>
+<ol start="4" type="1">
+<li>Inspect the resulting C code. <code>futhark c --library arrange.fut</code> generates a very large .c file <a href="https://github.com/nevrome/ggpointgrid/blob/1.4.0/src/arrange.c"><code>arrange.c</code></a>, and a short header file <a href="https://github.com/nevrome/ggpointgrid/blob/1.4.0/src/arrange.h"><code>arrange.h</code></a>. This header file contains the essential interface between C and Futhark, so functions and data types necessary to correctly call the entry function we defined above, and now want to thread through to R. It would now be possible to do this directly and call C code from R without another intermediate C++ layer. It seemed easier to me, though, to follow well-trodden paths and introduce Rcpp.</li>
+</ol>
+<h3 id="c-1">C++</h3>
+<ol start="5" type="1">
+<li>Setup Rcpp. Using Rcpp requires some changes to an R package, as documented in the vignette <a href="https://cloud.r-project.org/web/packages/Rcpp/vignettes/Rcpp-package.pdf">here</a>. The essential steps are i) adding <code>Imports: Rcpp (&gt;= 0.11.0)</code> and <code>LinkingTo: Rcpp</code> to the package’s DESCRIPTION file, and ii) adding <code>useDynLib(mypackage)</code> and <code>importFrom(Rcpp, evalCpp)</code> to the package’s NAMESPACE file. If you’re using <a href="https://roxygen2.r-lib.org/">roxygen2</a> to generate the documentation for the package, which I strongly recommend, then you should not manually edit the NAMESPACE file, but instead add a <a href="https://github.com/nevrome/ggpointgrid/blob/1.4.0/R/zzz.R"><code>zzz.R</code></a> file in the <code>R/</code> directory with the following content:</li>
+</ol>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">#' @useDynLib mypackage</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co">#' @importFrom Rcpp evalCpp</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="cn">NULL</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co">#' @export</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>.onUnload <span class="ot">&lt;-</span> <span class="cf">function</span>(libpath) {</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">library.dynam.unload</span>(<span class="st">&quot;mypackage&quot;</span>, libpath)</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<blockquote>
+<p>With that being setup and the Rcpp package itself installed, it should now be possible to use Rcpp in the package.</p>
+</blockquote>
+<ol start="6" type="1">
+<li>Write the C++ -&gt; C -&gt; Futhark bridge. This was the most challenging part for me in this process, and I required the help of an LLM to get it right. We need to define a C++ function that i) takes as input the relevant data types Rcpp introduces to represent R data types in C++ (e.g. <code>Rcpp::NumericVector</code>), ii) transforms them to the data types by which Futhark types are represented in C (e.g. <code>futhark_f64_1d</code>), iii) calls the C version of the Futhark entry point function (here <code>futhark_entry_arrange_from_coordinates</code>), and iv) finally transforms its output back to a meaningful Rcpp type. We also have to be careful about memory management. The Futhark runtime requires explicit creation and freeing of contexts and array objects. If we fail to do so correctly, then we can introduce memory leaks.</li>
+</ol>
+<blockquote>
+<p>My <a href="https://github.com/nevrome/ggpointgrid/blob/1.4.0/src/futhark_bridge_rcpp.cpp"><code>futhark_bridge_rcpp.cpp</code></a> may serve as an example, but the details depend on the input and output data types your application requires.</p>
+</blockquote>
+<div class="sourceCode" id="cb9"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">// [[Rcpp::depends(Rcpp)]]</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;Rcpp.h&gt;</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="at">extern</span> <span class="st">&quot;C&quot;</span> <span class="op">{</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;arrange.h&quot;</span><span class="pp">  </span><span class="co">// generated by Futhark</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> <span class="kw">namespace</span> Rcpp<span class="op">;</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="co">// [[Rcpp::export]]</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>Rcpp<span class="op">::</span>List futhark_entry_arrange_from_coordinates_cpp<span class="op">(</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    Rcpp<span class="op">::</span>NumericVector grid_xs<span class="op">,</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    Rcpp<span class="op">::</span>NumericVector grid_ys<span class="op">,</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    Rcpp<span class="op">::</span>NumericVector pts_x<span class="op">,</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    Rcpp<span class="op">::</span>NumericVector pts_y</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">...</span> <span class="co">// see the code file for the implementation details</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<ol start="7" type="1">
+<li><p>Generate an <a href="https://github.com/nevrome/ggpointgrid/blob/1.4.0/src/RcppExports.cpp"><code>RcppExports.cpp</code></a> file and an <a href="https://github.com/nevrome/ggpointgrid/blob/1.4.0/R/RcppExports.R"><code>RcppExports.R</code></a> file with the <code>Rcpp::compileAttributes()</code> R function. To call <code>futhark_entry_arrange_from_coordinates_cpp</code> from R we need yet another two wrapper functions, one in C++ and one in R. Fortunately Rcpp can generate these automatically for us. Of course <code>compileAttributes()</code> must be rerun any time the type signature of <code>futhark_entry_arrange_from_coordinates_cpp</code> changes.</p></li>
+<li><p>Compile the C and C++ code in the package. All components should be there now for compilation. To conveniently trigger this from R we can call <code>devtools::build()</code> or <code>devtools::document()</code>. The latter handles more additional details, so I would generally recommend to run this. Any coding mistakes in the previous steps will now lead to failure and must be addressed.</p></li>
+</ol>
+<h3 id="r">R</h3>
+<ol start="9" type="1">
+<li>Use the Futhark function in your R code. It can now already be called just like any other R function:</li>
+</ol>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">futhark_entry_arrange_from_coordinates_cpp</span>(</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>), <span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>), <span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">1</span>), <span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">1</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode txt"><code class="sourceCode default"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>[[1]]</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>[1] 1 2 3 4</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>[[2]]</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>[1] 1 2 3 4</span></code></pre></div>
+<blockquote>
+<p>For my use case I wrote a user-friendly wrapper around it in <a href="https://github.com/nevrome/ggpointgrid/blob/1.4.0/R/arrange_on_grid.R"><code>R/arrange_on_grid.R</code></a>. Just to document it properly, validate inputs and slightly restructure the output for more convenience.</p>
+</blockquote>
+<p>This concludes the essential steps I applied to use Futhark code in an R package. Please let me know if you find anything missing to get things to work!</p>
+<h2 id="cleaning-up">Cleaning up</h2>
+<p>In this process we added a number of files to the R package that are unusual and should be ignored in the package’s automatic build process. We have to add them to the <a href="https://github.com/nevrome/ggpointgrid/blob/1.4.0/.Rbuildignore"><code>.Rbuildignore</code></a> file:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode txt"><code class="sourceCode default"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>^src/arrange$</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>^src/arrange\.fut$</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>^src/arrange\.json$</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>^src/futhark\.pkg$</span></code></pre></div>
+<p>If you share this project on GitHub and want GitHub’s <a href="https://github.com/github-linguist/linguist">linguist</a> to generate a meaningful language breakdown graph, then you can add a <a href="https://github.com/nevrome/ggpointgrid/blob/1.4.0/.gitattributes"><code>.gitattributes</code></a> file with instructions to ignore the automatically generated C and C++ code:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode txt"><code class="sourceCode default"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>*.c linguist-vendored</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>*.h linguist-vendored</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>src/RcppExports.cpp linguist-vendored</span></code></pre></div>
+<p>Otherwise the thousands of lines of generated C will dominate the graph.</p>
+<figure>
+<img src="../images/2026-01-12-futhark-in-ggpointgrid/language_graph.png" style="width:60.0%" alt="GitHub language graph of ggpointgrid v1.4.0 with the .gitattributes set as above." />
+<figcaption aria-hidden="true">GitHub language graph of ggpointgrid v1.4.0 with the .gitattributes set as above.</figcaption>
+</figure>
+<h2 id="r-package-checks">R package checks</h2>
+<p>I did not submit <code>ggpointgrid</code> to the central R package archive <a href="https://cran.r-project.org/">CRAN</a>, but I still made sure to address ERRORs, WARNINGS, and NOTES revealed by <code>devtools::check()</code>. There are three, though, that emerge from the integration of Futhark, which are hard to avoid:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode txt"><code class="sourceCode default"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>❯ checking pragmas in C/C++ headers and code ... WARNING</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  File which contains non-portable pragma(s)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    ‘src/arrange.c’</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  File which contains pragma(s) suppressing diagnostics:</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    ‘src/arrange.c’</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>❯ checking compilation flags used ... NOTE</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>  Compilation used the following non-portable flag(s):</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    ‘-Werror=format-security’ ‘-Wformat’ ‘-Wp,-D_FORTIFY_SOURCE=3’</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    ‘-Wp,-D_GLIBCXX_ASSERTIONS’ ‘-march=x86-64’</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    ‘-mno-omit-leaf-frame-pointer’</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>❯ checking compiled code ... NOTE</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>  File ‘ggpointgrid/libs/ggpointgrid.so’:</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>    Found ‘stderr’, possibly from ‘stderr’ (C)</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>      Object: ‘arrange.o’</span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>  Compiled code should not call entry points which might terminate R nor</span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>  write to stdout/stderr instead of to the console, nor use Fortran I/O</span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>  nor system RNGs nor [v]sprintf.</span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>  See ‘Writing portable packages’ in the ‘Writing R Extensions’ manual.</span></code></pre></div>
+<p>When I saw these, I was quick to ask <a href="https://sigkill.dk/">Troels Henriksen</a>, the mastermind behind Futhark, if the output of his transpiler could be tweaked slightly for this particular context. While he was rightfully hesitant to make such changes for a single user, he also gave me some helpful background information on what they mean and why he considers them less severe than they sound. See our exchange here: <a href="https://archaeo.social/@ClemensSchmid/115157603838749836" class="uri">https://archaeo.social/@ClemensSchmid/115157603838749836</a>. My understanding is now as follows:</p>
+<ol type="1">
+<li><p><strong>checking pragmas in C/C++ headers and code … WARNING</strong>: These pragmas in the C code are for disabling warnings in the compilation process. The R WARNING can thus be avoided simply by deleting a section of the generated C code in <code>arrange.c</code> (<code>#ifdef __clang__</code> to <code>#endif</code>). This renders the C compilation output more messy, but doesn’t change any functionality either way.</p></li>
+<li><p><strong>checking compilation flags used … NOTE</strong>: These flags were set when R was built for my personal system, not the package. This NOTE should only pop up on my computer.</p></li>
+<li><p><strong>checking compiled code … NOTE</strong>: Writing to <code>stderr</code> only happens in code paths that a user of the entry point function would not reach. I’m not sure if they could be removed easily, but they should not have a detrimental effect on R’s functionality.</p></li>
+</ol>
+<p>So 1. can be avoided relatively easily and 2. should be only relevant on certain systems. Only 3. may be an issue. Whether a CRAN submission would be allowed with this NOTE is unclear to me, but I think it would be worth a try.</p>
+<h2 id="final-words">Final words</h2>
+<p>In the end I did manage to come up with a relatively convenient workflow to integrate Futhark in an R package. It was great fun to figure out the process step by step, and the result is production-ready: I have installed and used the ggpointgrid package a number of times since I made the change and never encountered any issues. I will most likely do this again, when I discover a clearly constrained bottleneck during R package development.</p>
+<p>Regarding performance, the Futhark solution is, in this particular case, a bit, but not extremely much faster than my original R implementation. Major cost centers of the core algorithm are sorting and pairwise distance calculation. And for these I could already use very fast functions available through R package dependencies. Using the Furthark multicore C output would speed things up a bit more, but I decided not to use it for the moment. Troels signalled interest in making the multicore output Windows-compatible eventually, so I have something to look forward to!</p>
+    </section>
+</article>
+
+        </main>
+
+        <footer>
+            <div class="logo">
+                <a href="https://orcid.org/0000-0003-3448-5715" aria-label="View ORCID record">
+                    <img src="../images/ORCID-iD_icon_BW_16x16.png" alt="ORCID iD" />
+                    0000-0003-3448-5715 ← Clemens
+                </a>
+            </div>
+            <nav>
+                <a href="../">Other posts</a>
+                <a href="https://github.com/nevrome/nevrome.de">GitHub</a>
+                <!--
+                <a href="/about.html">About</a>
+                <a href="/contact.html">Contact</a>
+                <a href="/archive.html">Archive</a>
+                -->
+            </nav>
+            Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </footer>
+    </body>
+</html>
